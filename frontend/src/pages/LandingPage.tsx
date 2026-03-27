@@ -1,5 +1,5 @@
-import { Link } from 'react-router-dom'
 import { Zap, Layers, Sparkles } from 'lucide-react'
+import { Link } from 'react-router-dom'
 
 export function LandingPage() {
   return (
@@ -53,20 +53,20 @@ export function LandingPage() {
             </div>
             <div>
               <h1 className="text-xl font-display font-bold uppercase tracking-wider leading-none">iOS Kit</h1>
-              <p className="text-xs font-mono uppercase tracking-widest leading-none mt-0.5">AI Studio</p>
+              <p className="text-xs font-mono uppercase tracking-widest leading-none mt-0.5">AI 工作室</p>
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Features</a>
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Pricing</a>
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">About</a>
+            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">功能</a>
+            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">价格</a>
+            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">关于</a>
           </nav>
           <div className="flex items-center gap-3">
             <Link to="/login" className="hidden md:block px-4 py-2 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-yellow-400 transition-colors">
-              Sign In
+              登录
             </Link>
             <Link to="/login" className="btn-brutal text-sm px-5 py-2">
-              Get Started
+              开始使用
             </Link>
           </div>
         </header>
@@ -77,26 +77,26 @@ export function LandingPage() {
             {/* Hero Section */}
             <div className="mb-16 md:mb-24">
               <div className="inline-block px-3 py-1 border-2 border-black bg-yellow-400 mb-6" style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)' }}>
-                <span className="text-xs font-mono uppercase tracking-widest">✨ Powered by AI</span>
+                <span className="text-xs font-mono uppercase tracking-widest">✨ AI 驱动</span>
               </div>
 
               <h2 className="text-5xl md:text-7xl lg:text-8xl font-display font-bold uppercase leading-[0.85] tracking-tight mb-6">
-                <span className="block">Generate</span>
+                <span className="block">生成</span>
                 <span className="block text-transparent" style={{ WebkitTextStroke: '3px #111' }}>App Store</span>
-                <span className="block" style={{ color: '#E62A3B' }}>Assets</span>
+                <span className="block" style={{ color: '#E62A3B' }}>上架素材</span>
               </h2>
 
               <p className="text-lg md:text-xl font-medium text-gray-700 max-w-2xl mb-8 leading-relaxed">
-                AI-powered studio for creating professional iOS App Store screenshots,
-                metadata, and marketing materials in seconds.
+                AI 驱动的工作室，快速创建专业的 iOS App Store 截图、
+                元数据和营销素材，只需几秒钟。
               </p>
 
               <div className="flex flex-wrap gap-4">
                 <Link to="/login" className="btn-brutal text-base px-8 py-4">
-                  Start Creating →
+                  开始创作 →
                 </Link>
                 <a href="#" className="px-8 py-4 border-2 border-black font-display font-bold text-base uppercase tracking-wider hover:bg-black hover:text-white transition-colors">
-                  Watch Demo
+                  观看演示
                 </a>
               </div>
             </div>
@@ -105,20 +105,20 @@ export function LandingPage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
               <FeatureCard
                 icon={<Zap className="w-6 h-6" />}
-                title="Lightning Fast"
-                description="Generate stunning screenshots in seconds, not hours. AI handles the heavy lifting."
+                title="极速生成"
+                description="几秒钟生成精美的截图，无需数小时。AI 帮你完成繁重工作。"
                 color="yellow"
               />
               <FeatureCard
                 icon={<Layers className="w-6 h-6" />}
-                title="All Sizes"
-                description="Auto-generate for iPhone 6.5 inch, 6.7 inch, iPad 12.9 inch and more. One click, all formats."
+                title="全尺寸支持"
+                description="自动生成 iPhone 6.5 英寸、6.7 英寸、iPad 12.9 英寸等所有尺寸。一键生成全部格式。"
                 color="teal"
               />
               <FeatureCard
                 icon={<Sparkles className="w-6 h-6" />}
-                title="AI Designed"
-                description="Smart style recommendations based on your apps content and category."
+                title="AI 设计"
+                description="根据你的 App 内容和类别，智能推荐风格配色。"
                 color="red"
               />
             </div>
@@ -129,17 +129,17 @@ export function LandingPage() {
                 <div className="w-24 h-24 mx-auto mb-6 border-2 border-black bg-gray-100 flex items-center justify-center">
                   <span className="text-4xl opacity-50">🎨</span>
                 </div>
-                <h3 className="font-display font-bold text-2xl uppercase mb-2">Coming Soon</h3>
-                <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">Live Preview Showcase</p>
+                <h3 className="font-display font-bold text-2xl uppercase mb-2">即将上线</h3>
+                <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">实时预览展示</p>
               </div>
             </div>
 
             {/* 数据展示 */}
             <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
-              <StatBlock value="10x" label="Faster Workflow" />
-              <StatBlock value="500+" label="Templates" />
-              <StatBlock value="100%" label="App Store Ready" />
-              <StatBlock value="24/7" label="AI Available" />
+              <StatBlock value="10x" label="工作效率提升" />
+              <StatBlock value="500+" label="模板数量" />
+              <StatBlock value="100%" label="App Store 就绪" />
+              <StatBlock value="24/7" label="AI 全天候" />
             </div>
           </div>
         </main>
@@ -150,8 +150,8 @@ export function LandingPage() {
             <div className="flex items-center gap-4">
               <span className="text-xs font-mono uppercase tracking-wider">© 2024 iOS Kit</span>
               <span className="text-gray-300">|</span>
-              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Terms</a>
-              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Privacy</a>
+              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">条款</a>
+              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">隐私</a>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-20 h-6 barcode" />

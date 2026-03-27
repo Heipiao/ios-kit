@@ -20,7 +20,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
           </div>
           <div>
             <h1 className="text-lg font-display font-bold uppercase tracking-wider leading-none">iOS Kit</h1>
-            <p className="text-xs font-mono uppercase tracking-widest leading-none mt-1">AI Studio</p>
+            <p className="text-xs font-mono uppercase tracking-widest leading-none mt-1">AI 工作室</p>
           </div>
         </div>
       </div>
@@ -39,7 +39,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
               style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <Home className="w-5 h-5" />
-              <span className="font-bold text-sm uppercase tracking-wide">Dashboard</span>
+              <span className="font-bold text-sm uppercase tracking-wide">首页</span>
             </Link>
           </li>
           <li>
@@ -53,7 +53,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
               style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <Image className="w-5 h-5" />
-              <span className="font-bold text-sm uppercase tracking-wide">Screenshots</span>
+              <span className="font-bold text-sm uppercase tracking-wide">截图工厂</span>
             </Link>
           </li>
           <li>
@@ -67,7 +67,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
               style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <FileText className="w-5 h-5" />
-              <span className="font-bold text-sm uppercase tracking-wide">Metadata</span>
+              <span className="font-bold text-sm uppercase tracking-wide">元数据</span>
             </Link>
           </li>
         </ul>
@@ -76,12 +76,12 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
         <div className="mt-6">
           <div className="flex items-center justify-between px-3 py-2 border-t-2 border-black mt-4">
             <span className="text-xs font-display font-bold uppercase tracking-widest">
-              Projects
+              项目
             </span>
             <button
               onClick={onCreateProject}
               className="p-1 hover:bg-black hover:text-white transition-colors border border-black"
-              title="New Project"
+              title="新建项目"
             >
               <Plus className="w-4 h-4" />
             </button>
@@ -102,7 +102,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
                 className="flex items-center gap-3 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-yellow-50 transition-all"
               >
                 <span className="w-2 h-2 bg-gray-300 border border-black" />
-                <span className="text-sm font-bold uppercase tracking-wide">Note App</span>
+                <span className="text-sm font-bold uppercase tracking-wide">记事本</span>
               </a>
             </li>
           </ul>
@@ -116,7 +116,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
           className="flex items-center gap-3 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-white transition-all"
         >
           <Settings className="w-5 h-5" />
-          <span className="font-bold text-sm uppercase">Settings</span>
+          <span className="font-bold text-sm uppercase">设置</span>
         </a>
       </div>
 
