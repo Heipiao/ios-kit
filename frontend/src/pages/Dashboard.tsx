@@ -2,8 +2,8 @@ import { Plus, Clock } from 'lucide-react'
 
 export function Dashboard() {
   const projects = [
-    { id: 1, name: 'Fitness App', updated: '2 小时前', progress: 60 },
-    { id: 2, name: '记事本', updated: '昨天', progress: 30 },
+    { id: 1, name: 'Fitness App', updated: '2 hours ago', progress: 60 },
+    { id: 2, name: 'Note App', updated: 'Yesterday', progress: 30 },
   ]
 
   return (
@@ -11,12 +11,12 @@ export function Dashboard() {
       {/* 头部 */}
       <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-black">
         <div>
-          <h1 className="text-3xl lg:text-4xl font-display font-bold uppercase tracking-wider">我的项目</h1>
-          <p className="text-xs font-mono text-gray-500 mt-1 uppercase tracking-widest">MY PROJECTS // DASHBOARD</p>
+          <h1 className="text-3xl lg:text-4xl font-display font-bold uppercase tracking-wider">My Projects</h1>
+          <p className="text-xs font-mono text-gray-500 mt-1 uppercase tracking-widest">PROJECT DASHBOARD</p>
         </div>
         <button className="btn-brutal flex items-center gap-2">
           <Plus className="w-5 h-5" />
-          <span className="hidden sm:inline">新建项目</span>
+          <span className="hidden sm:inline">New Project</span>
         </button>
       </div>
 
@@ -34,7 +34,7 @@ export function Dashboard() {
               <Clock className="w-5 h-5 text-gray-400" />
             </div>
             <h3 className="font-display font-bold text-xl uppercase mb-1">{project.name}</h3>
-            <p className="text-xs font-mono text-gray-500 mb-4 uppercase">更新于 {project.updated}</p>
+            <p className="text-xs font-mono text-gray-500 mb-4 uppercase">Updated {project.updated}</p>
             <div className="flex items-center gap-3">
               <div className="flex-1 h-3 bg-gray-200 border border-black overflow-hidden">
                 <div
@@ -52,8 +52,8 @@ export function Dashboard() {
           <div className="w-14 h-14 border-2 border-black bg-gray-200 flex items-center justify-center mb-4">
             <Plus className="w-8 h-8 text-gray-500" />
           </div>
-          <span className="font-display font-bold text-lg uppercase">创建新项目</span>
-          <span className="text-xs font-mono text-gray-500 mt-1 uppercase">CREATE NEW PROJECT</span>
+          <span className="font-display font-bold text-lg uppercase">Create New Project</span>
+          <span className="text-xs font-mono text-gray-500 mt-1 uppercase">START FRESH</span>
         </div>
       </div>
 
@@ -61,29 +61,29 @@ export function Dashboard() {
       <div className="mt-8 card-brutal p-6">
         <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-black">
           <span className="text-2xl">💡</span>
-          <h2 className="font-display font-bold text-xl uppercase">快速开始</h2>
-          <span className="ml-auto text-xs font-mono uppercase tracking-wider text-gray-500">QUICK START</span>
+          <h2 className="font-display font-bold text-xl uppercase">Quick Start</h2>
+          <span className="ml-auto text-xs font-mono uppercase tracking-wider text-gray-500">GET STARTED</span>
         </div>
         <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">
           <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
             <span className="w-4 h-4 bg-black flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm uppercase">创建项目</p>
-              <p className="text-xs text-gray-500 font-mono mt-1">创建新的 iOS 项目</p>
+              <p className="font-bold text-sm uppercase">Create Project</p>
+              <p className="text-xs text-gray-500 font-mono mt-1">Start a new iOS project</p>
             </div>
           </li>
           <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
             <span className="w-4 h-4 bg-teal-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm uppercase">AI 生成</p>
-              <p className="text-xs text-gray-500 font-mono mt-1">生成上架材料</p>
+              <p className="font-bold text-sm uppercase">AI Generate</p>
+              <p className="text-xs text-gray-500 font-mono mt-1">Generate app store assets</p>
             </div>
           </li>
           <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
             <span className="w-4 h-4 bg-red-400 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="font-bold text-sm uppercase">截图工厂</p>
-              <p className="text-xs text-gray-500 font-mono mt-1">多尺寸截图生成</p>
+              <p className="font-bold text-sm uppercase">Screenshots</p>
+              <p className="text-xs text-gray-500 font-mono mt-1">Multi-size screenshot generator</p>
             </div>
           </li>
         </ul>

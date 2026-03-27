@@ -22,17 +22,17 @@ export function Login() {
           password,
         })
         if (error) throw error
-        alert('注册成功！请检查邮箱验证链接')
+        alert('Account created! Please check your email for verification link.')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
           password,
         })
         if (error) throw error
-        navigate('/')
+        navigate('/dashboard')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '操作失败')
+      setError(err instanceof Error ? err.message : 'Operation failed')
     } finally {
       setLoading(false)
     }
@@ -87,7 +87,7 @@ export function Login() {
               <span className="text-4xl">📱</span>
             </div>
             <h1 className="text-4xl font-display font-bold text-black uppercase tracking-wider">iOS Kit</h1>
-            <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">一键生成 iOS 上架材料</p>
+            <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">AI-Powered App Store Studio</p>
           </div>
 
           {/* 表单 */}
@@ -95,7 +95,7 @@ export function Login() {
             <div className="space-y-5">
               <div>
                 <label className="meta-label block mb-2">
-                  邮箱 / Email
+                  Email Address
                 </label>
                 <input
                   type="email"
@@ -109,7 +109,7 @@ export function Login() {
 
               <div>
                 <label className="meta-label block mb-2">
-                  密码 / Password
+                  Password
                 </label>
                 <input
                   type="password"
@@ -132,20 +132,20 @@ export function Login() {
                 disabled={loading}
                 className="w-full btn-brutal disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? 'LOADING...' : isSignUp ? '注册 / SIGN UP' : '登录 / SIGN IN'}
+                {loading ? 'LOADING...' : isSignUp ? 'Create Account' : 'Sign In'}
               </button>
             </div>
 
             {/* 切换 */}
             <div className="mt-6 text-center">
               <p className="text-xs font-medium text-gray-600 uppercase tracking-wider">
-                {isSignUp ? '已有账号？' : '还没有账号？'}
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
                 <button
                   type="button"
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="ml-2 text-black font-bold underline decoration-2 underline-offset-2 hover:text-red-600 transition-colors"
                 >
-                  {isSignUp ? '登录' : '注册'}
+                  {isSignUp ? 'Sign In' : 'Sign Up'}
                 </button>
               </p>
             </div>
