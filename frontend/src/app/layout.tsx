@@ -2,7 +2,7 @@ import type { Metadata } from 'next'
 import './globals.css'
 
 export const metadata: Metadata = {
-  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://ioskit.vercel.app'),
+  metadataBase: new URL(process.env.PUBLIC_SITE_URL || 'https://ioskit.vercel.app'),
   title: {
     default: 'iOS Kit - AI-Powered App Store Screenshot Generator',
     template: '%s | iOS Kit',

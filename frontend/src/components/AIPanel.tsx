@@ -76,8 +76,9 @@ export function AIPanel({ isOpen, onClose }: AIPanelProps) {
             type="button"
             className="p-2 border-2 border-black hover:bg-black hover:text-white transition-colors"
             title="Upload image"
+            aria-label="Upload image"
           >
-            <Image className="w-5 h-5" alt="Upload" />
+            <Image className="w-5 h-5" />
           </button>
           <input
             type="text"

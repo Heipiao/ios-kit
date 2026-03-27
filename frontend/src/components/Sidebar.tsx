@@ -54,8 +54,9 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
                   : 'border-transparent hover:border-black hover:bg-yellow-50'
               }`}
               style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
+              aria-label="Screenshots"
             >
-              <Image className="w-5 h-5" alt="Screenshots" />
+              <Image className="w-5 h-5" />
               <span className="font-bold text-sm uppercase tracking-wide">Screenshots</span>
             </Link>
           </li>
