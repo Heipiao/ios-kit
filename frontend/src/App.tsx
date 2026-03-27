@@ -4,6 +4,7 @@ import { Login } from './pages/Login'
 import { Dashboard } from './pages/Dashboard'
 import { ProjectEditor } from './pages/ProjectEditor'
 import { ScreenshotFactory } from './pages/ScreenshotFactory'
+import { ProtectedRoute } from './components/ProtectedRoute'
 
 function App() {
   return (
@@ -13,25 +14,31 @@ function App() {
         <Route
           path="/"
           element={
-            <Layout>
-              <Dashboard />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <Dashboard />
+              </Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/editor"
           element={
-            <Layout>
-              <ProjectEditor />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <ProjectEditor />
+              </Layout>
+            </ProtectedRoute>
           }
         />
         <Route
           path="/screenshots"
           element={
-            <Layout>
-              <ScreenshotFactory />
-            </Layout>
+            <ProtectedRoute>
+              <Layout>
+                <ScreenshotFactory />
+              </Layout>
+            </ProtectedRoute>
           }
         />
         <Route path="*" element={<Navigate to="/" replace />} />
