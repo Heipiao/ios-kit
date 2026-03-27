@@ -55,7 +55,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
               }`}
               style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
-              <Image className="w-5 h-5" />
+              <Image className="w-5 h-5" alt="Screenshots" />
               <span className="font-bold text-sm uppercase tracking-wide">Screenshots</span>
             </Link>
           </li>
