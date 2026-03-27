@@ -112,13 +112,13 @@ export function LandingPage() {
               <FeatureCard
                 icon={<Layers className="w-6 h-6" />}
                 title="All Sizes"
-                description="Auto-generate for iPhone 6.5\", 6.7\", iPad 12.9\" and more. One click, all formats."
+                description="Auto-generate for iPhone 6.5 inch, 6.7 inch, iPad 12.9 inch and more. One click, all formats."
                 color="teal"
               />
               <FeatureCard
                 icon={<Sparkles className="w-6 h-6" />}
                 title="AI Designed"
-                description="Smart style recommendations based on your app's content and category."
+                description="Smart style recommendations based on your apps content and category."
                 color="red"
               />
             </div>
