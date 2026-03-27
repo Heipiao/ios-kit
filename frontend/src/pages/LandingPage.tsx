@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { ArrowRight, Zap, Layers, Sparkles } from 'lucide-react'
+import { Zap, Layers, Sparkles } from 'lucide-react'
 
 export function LandingPage() {
   return (
