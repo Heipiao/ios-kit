@@ -1,7 +1,19 @@
+import { Metadata } from 'next'
+import Link from 'next/link'
 import { Zap, Layers, Sparkles } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
-export function LandingPage() {
+export const metadata: Metadata = {
+  title: 'AI-Powered App Store Screenshot Generator',
+  description: 'Generate professional iOS App Store screenshots, metadata, and marketing materials in seconds using AI. Support for all iPhone and iPad sizes.',
+  keywords: ['iOS screenshot generator', 'App Store assets', 'AI screenshot tool', 'iOS marketing'],
+  openGraph: {
+    title: 'iOS Kit - Generate App Store Assets in Seconds',
+    description: 'AI-powered studio for creating professional iOS App Store screenshots.',
+    images: ['/og-image.png'],
+  },
+}
+
+export default function LandingPage() {
   return (
     <div className="relative min-h-screen overflow-hidden">
       {/* Dynamic background layer */}
@@ -57,15 +69,15 @@ export function LandingPage() {
             </div>
           </div>
           <nav className="hidden md:flex items-center gap-6">
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Features</a>
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Pricing</a>
-            <a href="#" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">About</a>
+            <Link href="/about" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Features</Link>
+            <Link href="/about" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Pricing</Link>
+            <Link href="/about" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">About</Link>
           </nav>
           <div className="flex items-center gap-3">
-            <Link to="/login" className="hidden md:block px-4 py-2 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-yellow-400 transition-colors">
+            <Link href="/login" className="hidden md:block px-4 py-2 border-2 border-black font-bold text-sm uppercase tracking-wider hover:bg-yellow-400 transition-colors">
               Sign In
             </Link>
-            <Link to="/login" className="btn-brutal text-sm px-5 py-2">
+            <Link href="/login" className="btn-brutal text-sm px-5 py-2">
               Get Started
             </Link>
           </div>
@@ -75,7 +87,7 @@ export function LandingPage() {
         <main className="px-6 md:px-12 py-12 md:py-20">
           <div className="max-w-6xl mx-auto">
             {/* Hero Section */}
-            <div className="mb-16 md:mb-24">
+            <section className="mb-16 md:mb-24">
               <div className="inline-block px-3 py-1 border-2 border-black bg-yellow-400 mb-6" style={{ clipPath: 'polygon(0 0, calc(100% - 6px) 0, 100% 6px, 100% 100%, 0 100%)' }}>
                 <span className="text-xs font-mono uppercase tracking-widest">✨ AI Powered</span>
               </div>
@@ -92,17 +104,17 @@ export function LandingPage() {
               </p>
 
               <div className="flex flex-wrap gap-4">
-                <Link to="/login" className="btn-brutal text-base px-8 py-4">
+                <Link href="/login" className="btn-brutal text-base px-8 py-4">
                   Start Creating →
                 </Link>
-                <a href="#" className="px-8 py-4 border-2 border-black font-display font-bold text-base uppercase tracking-wider hover:bg-black hover:text-white transition-colors">
+                <a href="#features" className="px-8 py-4 border-2 border-black font-display font-bold text-base uppercase tracking-wider hover:bg-black hover:text-white transition-colors">
                   Watch Demo
                 </a>
               </div>
-            </div>
+            </section>
 
             {/* Feature grid */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
+            <section id="features" className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-16">
               <FeatureCard
                 icon={<Zap className="w-6 h-6" />}
                 title="Lightning Fast"
@@ -121,10 +133,10 @@ export function LandingPage() {
                 description="Smart style recommendations based on your app content and category."
                 color="red"
               />
-            </div>
+            </section>
 
             {/* Decorative showcase - placeholder */}
-            <div className="card-brutal p-8 md:p-12 min-h-[300px] flex items-center justify-center bg-white">
+            <section className="card-brutal p-8 md:p-12 min-h-[300px] flex items-center justify-center bg-white mb-16">
               <div className="text-center">
                 <div className="w-24 h-24 mx-auto mb-6 border-2 border-black bg-gray-100 flex items-center justify-center">
                   <span className="text-4xl opacity-50">🎨</span>
@@ -132,15 +144,15 @@ export function LandingPage() {
                 <h3 className="font-display font-bold text-2xl uppercase mb-2">Coming Soon</h3>
                 <p className="text-gray-500 font-mono text-sm uppercase tracking-wider">Live Preview Showcase</p>
               </div>
-            </div>
+            </section>
 
             {/* Stats */}
-            <div className="mt-16 grid grid-cols-2 md:grid-cols-4 gap-4">
+            <section className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <StatBlock value="10x" label="Faster Workflow" />
               <StatBlock value="500+" label="Templates" />
               <StatBlock value="100%" label="App Store Ready" />
               <StatBlock value="24/7" label="AI Available" />
-            </div>
+            </section>
           </div>
         </main>
 
@@ -150,8 +162,9 @@ export function LandingPage() {
             <div className="flex items-center gap-4">
               <span className="text-xs font-mono uppercase tracking-wider">© 2024 iOS Kit</span>
               <span className="text-gray-300">|</span>
-              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Terms</a>
-              <a href="#" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Privacy</a>
+              <Link href="/terms" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Terms</Link>
+              <Link href="/privacy" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">Privacy</Link>
+              <Link href="/about" className="text-xs font-mono uppercase tracking-wider hover:text-red-600">About</Link>
             </div>
             <div className="flex items-center gap-2">
               <div className="w-20 h-6 barcode" />

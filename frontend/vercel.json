@@ -1,13 +1,3 @@
 {
-  "buildCommand": "npm run build -- --mode production",
-  "outputDirectory": "dist",
-  "installCommand": "npm install",
-  "framework": "vite",
-  "rewrites": [
-    {
-      "source": "/(.*)",
-      "destination": "/index.html"
-    }
-  ],
   "regions": ["hnd1"]
 }

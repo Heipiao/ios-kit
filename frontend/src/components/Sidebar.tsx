@@ -1,4 +1,7 @@
-import { Link, useLocation } from 'react-router-dom'
+'use client'
+
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import { Home, Image, FileText, Settings, Plus } from 'lucide-react'
 
 interface SidebarProps {
@@ -6,9 +9,9 @@ interface SidebarProps {
 }
 
 export function Sidebar({ onCreateProject }: SidebarProps) {
-  const location = useLocation()
+  const pathname = usePathname()
 
-  const isActive = (path: string) => location.pathname === path
+  const isActive = (path: string) => pathname === path
 
   return (
     <div className="w-64 border-r-2 border-black bg-white flex flex-col h-full">
@@ -30,7 +33,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
         <ul className="space-y-1">
           <li>
             <Link
-              to="/dashboard"
+              href="/dashboard"
               className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
                 isActive('/dashboard')
                   ? 'bg-black text-white border-black'
@@ -44,7 +47,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
           </li>
           <li>
             <Link
-              to="/screenshots"
+              href="/screenshots"
               className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
                 isActive('/screenshots')
                   ? 'bg-black text-white border-black'
@@ -58,7 +61,7 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
           </li>
           <li>
             <Link
-              to="/editor"
+              href="/editor"
               className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
                 isActive('/editor')
                   ? 'bg-black text-white border-black'

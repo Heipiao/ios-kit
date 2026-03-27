@@ -1,7 +1,17 @@
-import { Link } from 'react-router-dom'
+import { Metadata } from 'next'
+import Link from 'next/link'
 import { Zap, Layers, Sparkles, Globe, Mail } from 'lucide-react'
 
-export function About() {
+export const metadata: Metadata = {
+  title: 'About - iOS Kit',
+  description: 'iOS Kit is an AI-powered studio designed to help developers create professional App Store assets in seconds.',
+  openGraph: {
+    title: 'About iOS Kit',
+    description: 'Learn about iOS Kit - AI-powered App Store asset generator.',
+  },
+}
+
+export default function About() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -13,13 +23,13 @@ export function About() {
             </div>
             <span className="font-display font-bold uppercase tracking-wider">iOS Kit</span>
           </div>
-          <Link to="/" className="btn-brutal text-sm px-5 py-2">
+          <Link href="/" className="btn-brutal text-sm px-5 py-2">
             Back Home
           </Link>
         </div>
       </header>
 
-      {/* Hero */}
+      {/* Main */}
       <main className="max-w-6xl mx-auto px-6 py-12">
         <div className="mb-16">
           <h1 className="text-4xl md:text-6xl font-display font-bold uppercase tracking-wider mb-6">
@@ -36,7 +46,7 @@ export function About() {
           <div className="card-brutal p-8 bg-white">
             <h2 className="font-display font-bold text-2xl uppercase mb-4">Our Mission</h2>
             <p className="text-gray-700 leading-relaxed">
-              Creating app store assets shouldn't be a chore. We believe developers should focus on building
+              Creating app store assets shouldn&apos;t be a chore. We believe developers should focus on building
               great apps, not wrestling with design tools. iOS Kit uses artificial intelligence to automate
               the tedious parts of App Store optimization—generating screenshots, writing metadata, and
               creating marketing materials—so you can launch faster and with confidence.
@@ -63,7 +73,7 @@ export function About() {
             <FeatureCard
               icon={<Sparkles className="w-8 h-8" />}
               title="AI Powered"
-              description="Smart recommendations for styles, keywords, and descriptions based on your app's content and category."
+              description="Smart recommendations for styles, keywords, and descriptions based on your app&apos;s content and category."
               color="red"
             />
           </div>
@@ -76,7 +86,7 @@ export function About() {
             <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
               <TechBadge name="React" description="UI Framework" />
               <TechBadge name="TypeScript" description="Type Safety" />
-              <TechBadge name="Vite" description="Build Tool" />
+              <TechBadge name="Next.js" description="SSR Framework" />
               <TechBadge name="TailwindCSS" description="Styling" />
               <TechBadge name="Supabase" description="Auth & DB" />
               <TechBadge name="Vercel" description="Hosting" />
@@ -91,7 +101,7 @@ export function About() {
           <div className="card-brutal p-8 bg-white">
             <h2 className="font-display font-bold text-2xl uppercase mb-4">The Team</h2>
             <p className="text-gray-700 leading-relaxed mb-6">
-              iOS Kit is built by developers who understand the pain of App Store submissions. We've been
+              iOS Kit is built by developers who understand the pain of App Store submissions. We&apos;ve been
               through countless app launches and know exactly what assets you need to succeed.
             </p>
             <div className="flex flex-wrap gap-4">
@@ -114,7 +124,7 @@ export function About() {
             <p className="text-gray-300 mb-8 max-w-xl mx-auto">
               Join developers who are creating professional App Store assets in minutes.
             </p>
-            <Link to="/login" className="btn-brutal bg-yellow-400 text-black inline-block">
+            <Link href="/login" className="btn-brutal bg-yellow-400 text-black inline-block">
               Create Free Account →
             </Link>
           </div>
@@ -128,11 +138,11 @@ export function About() {
             <span className="text-xs font-mono uppercase tracking-wider">© 2024 iOS Kit</span>
           </div>
           <div className="flex items-center gap-4 text-xs font-mono uppercase tracking-wider">
-            <Link to="/terms" className="hover:text-red-600">Terms</Link>
+            <Link href="/terms" className="hover:text-red-600">Terms</Link>
             <span>|</span>
-            <Link to="/privacy" className="hover:text-red-600">Privacy</Link>
+            <Link href="/privacy" className="hover:text-red-600">Privacy</Link>
             <span>|</span>
-            <Link to="/about" className="hover:text-red-600">About</Link>
+            <Link href="/about" className="hover:text-red-600">About</Link>
           </div>
         </div>
       </footer>
