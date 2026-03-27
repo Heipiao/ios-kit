@@ -425,14 +425,19 @@ export function AIPanel({ isOpen: _isOpen, onClose, context }: AIPanelProps) {
   }
 
   return (
-    <div className="w-96 border-l bg-white flex flex-col h-full">
+    <div className="w-96 border-l-2 border-black bg-white flex flex-col h-full">
       {/* Header */}
-      <div className="flex items-center justify-between p-4 border-b">
+      <div className="flex items-center justify-between p-4 border-b-2 border-black bg-yellow-400">
         <div className="flex items-center gap-2">
-          <MessageSquare className="w-5 h-5 text-primary-600" />
-          <h2 className="font-semibold">AI 助手</h2>
+          <div className="w-8 h-8 border-2 border-black bg-black flex items-center justify-center">
+            <MessageSquare className="w-4 h-4 text-white" />
+          </div>
+          <div>
+            <h2 className="font-display font-bold uppercase tracking-wider text-sm">AI 助手</h2>
+            <p className="text-xs font-mono uppercase tracking-widest">AI ASSISTANT</p>
+          </div>
         </div>
-        <button onClick={onClose} className="p-1 hover:bg-gray-100 rounded">
+        <button onClick={onClose} className="p-1 hover:bg-black hover:text-white transition-colors border-2 border-black">
           <X className="w-5 h-5" />
         </button>
       </div>
@@ -444,17 +449,19 @@ export function AIPanel({ isOpen: _isOpen, onClose, context }: AIPanelProps) {
             <div className={cn('flex', message.role === 'user' ? 'justify-end' : 'justify-start')}>
               <div
                 className={cn(
-                  'max-w-[85%] rounded-lg p-3',
-                  message.role === 'user' ? 'bg-primary-600 text-white' : 'bg-gray-100'
+                  'max-w-[85%] p-3 border-2 border-black',
+                  message.role === 'user' ? 'bg-black text-white' : 'bg-gray-50',
+                  message.role === 'user' ? '' : 'shadow-[3px_3px_0px_#000]'
                 )}
+                style={{ clipPath: message.role === 'user' ? 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' : undefined }}
               >
-                <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                <p className="text-sm whitespace-pre-wrap font-medium">{message.content}</p>
 
                 {/* 附件预览 */}
                 {message.attachments && (
                   <div className="grid grid-cols-2 gap-2 mt-2">
                     {message.attachments.map((att, i) => (
-                      <div key={i} className="aspect-square rounded bg-white overflow-hidden border">
+                      <div key={i} className="aspect-square bg-white overflow-hidden border-2 border-black">
                         <img src={att.url} alt={att.name} className="w-full h-full object-cover" />
                       </div>
                     ))}
@@ -476,11 +483,11 @@ export function AIPanel({ isOpen: _isOpen, onClose, context }: AIPanelProps) {
         ))}
         {isLoading && (
           <div className="flex justify-start">
-            <div className="bg-gray-100 rounded-lg p-3">
+            <div className="border-2 border-black bg-gray-50 shadow-[3px_3px_0px_#000] p-3">
               <div className="flex gap-1">
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.1s]" />
-                <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce [animation-delay:0.2s]" />
+                <div className="w-2 h-2 bg-black" />
+                <div className="w-2 h-2 bg-black animate-bounce [animation-delay:0.1s]" />
+                <div className="w-2 h-2 bg-black animate-bounce [animation-delay:0.2s]" />
               </div>
             </div>
           </div>
@@ -488,15 +495,15 @@ export function AIPanel({ isOpen: _isOpen, onClose, context }: AIPanelProps) {
       </div>
 
       {/* Input */}
-      <form onSubmit={handleSubmit} className="p-4 border-t">
+      <form onSubmit={handleSubmit} className="p-4 border-t-2 border-black bg-gray-50">
         <div className="flex gap-2">
           <button
             type="button"
             onClick={() => fileInputRef.current?.click()}
-            className="p-2 hover:bg-gray-100 rounded-lg"
+            className="p-2 border-2 border-black hover:bg-black hover:text-white transition-colors"
             title="上传图片"
           >
-            <Image className="w-5 h-5 text-gray-500" />
+            <Image className="w-5 h-5" />
           </button>
           <input
             type="file"
@@ -508,19 +515,23 @@ export function AIPanel({ isOpen: _isOpen, onClose, context }: AIPanelProps) {
           />
           <input
             type="text"
-            placeholder="说点什么，比如：换个蓝色系..."
-            className="flex-1 px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
+            placeholder="输入消息..."
+            className="flex-1 px-3 py-2 border-2 border-black bg-white focus:outline-none focus:border-yellow-400 font-mono text-sm"
             disabled={isLoading}
           />
           <button
             type="submit"
             disabled={isLoading}
-            className="px-4 py-2 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-4 py-2 bg-black text-white border-2 border-black hover:bg-red-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
           >
             <ChevronRight className="w-5 h-5" />
           </button>
         </div>
       </form>
+
+      {/* 装饰元素 */}
+      <div className="absolute bottom-2 right-2 w-3 h-3 border border-black opacity-20" />
     </div>
   )
 }

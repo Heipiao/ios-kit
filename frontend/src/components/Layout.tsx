@@ -11,18 +11,20 @@ export function Layout({ children }: LayoutProps) {
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false)
 
   return (
-    <div className="flex h-screen bg-gray-50">
+    <div className="flex h-screen bg-gray-50 overflow-hidden">
       {/* Sidebar */}
       <Sidebar />
 
       {/* Main Content */}
-      <main className="flex-1 overflow-auto">{children}</main>
+      <main className="flex-1 overflow-auto bg-grid-pattern">
+        {children}
+      </main>
 
       {/* AI Panel Toggle Button */}
       {!isAIPanelOpen && (
         <button
           onClick={() => setIsAIPanelOpen(true)}
-          className="fixed right-4 bottom-4 p-4 bg-primary-600 text-white rounded-full shadow-lg hover:bg-primary-700 transition-colors z-50"
+          className="fixed right-6 bottom-6 p-4 bg-black text-white border-2 border-black btn-brutal !rounded-none z-50 hover:bg-red-500"
         >
           <MessageSquare className="w-6 h-6" />
         </button>
@@ -33,6 +35,16 @@ export function Layout({ children }: LayoutProps) {
         isOpen={isAIPanelOpen}
         onClose={() => setIsAIPanelOpen(false)}
       />
+
+      {/* SVG Filters */}
+      <svg className="svg-filters">
+        <defs>
+          <filter id="rough-stroke" x="-20%" y="-20%" width="140%" height="140%">
+            <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" result="noise" />
+            <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+          </filter>
+        </defs>
+      </svg>
     </div>
   )
 }

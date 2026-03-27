@@ -1,6 +1,24 @@
+@import url('https://fonts.googleapis.com/css2?family=Anton&family=Inter:wght@400;700;900&family=Noto+Sans+SC:wght@400;700;900&display=swap');
+
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+:root {
+  /* 海报艺术风格配色 */
+  --c-white: #F4F4F0;
+  --c-black: #111111;
+  --c-red: #E62A3B;
+  --c-yellow: #FFCC00;
+  --c-teal: #42C0B7;
+  --c-navy: #142850;
+  --c-orange: #FF6B35;
+
+  /* 字体 */
+  --font-display: 'Anton', sans-serif;
+  --font-meta: 'Inter', sans-serif;
+  --font-zh: 'Noto Sans SC', sans-serif;
+}
 
 * {
   box-sizing: border-box;
@@ -8,9 +26,170 @@
 
 body {
   margin: 0;
-  font-family: system-ui, 'Segoe UI', Roboto, sans-serif;
+  font-family: var(--font-meta);
+  background-color: var(--c-white);
+  color: var(--c-black);
+  overflow-x: hidden;
 }
 
 #root {
   min-height: 100vh;
+}
+
+/* 自定义滚动条 */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: var(--c-white);
+  border: 1px solid var(--c-black);
+}
+
+::-webkit-scrollbar-thumb {
+  background: var(--c-black);
+  border: 1px solid var(--c-white);
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: var(--c-red);
+}
+
+/* 解构主义边框 */
+.border-brutal {
+  border: 2px solid var(--c-black);
+  box-shadow: 4px 4px 0px var(--c-black);
+}
+
+.border-brutal-sm {
+  border: 2px solid var(--c-black);
+  box-shadow: 2px 2px 0px var(--c-black);
+}
+
+/* 切角效果 */
+.clip-cut {
+  clip-path: polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%);
+}
+
+/* 粗糙边缘效果 */
+.rough-edge {
+  filter: url('#rough-stroke');
+}
+
+/* 海报风格按钮 */
+.btn-brutal {
+  font-family: var(--font-display);
+  text-transform: uppercase;
+  border: 2px solid var(--c-black);
+  background: var(--c-black);
+  color: var(--c-white);
+  padding: 0.75rem 2rem;
+  font-size: 1.25rem;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  clip-path: polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%);
+}
+
+.btn-brutal:hover {
+  background: var(--c-red);
+  transform: translate(-2px, -2px);
+  box-shadow: 3px 3px 0px var(--c-black);
+}
+
+.btn-brutal:active {
+  transform: translate(0, 0);
+  box-shadow: none;
+}
+
+.btn-brutal-secondary {
+  background: var(--c-white);
+  color: var(--c-black);
+}
+
+.btn-brutal-secondary:hover {
+  background: var(--c-yellow);
+}
+
+/* 海报风格卡片 */
+.card-brutal {
+  background: var(--c-white);
+  border: 2px solid var(--c-black);
+  box-shadow: 4px 4px 0px var(--c-black);
+  transition: all 0.2s ease;
+}
+
+.card-brutal:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 6px 6px 0px var(--c-black);
+}
+
+/* 元数据块 */
+.meta-label {
+  font-size: 0.6rem;
+  font-weight: 900;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  color: var(--c-black);
+  border-bottom: 2px solid var(--c-black);
+  padding-bottom: 2px;
+}
+
+/* 装饰性条形码 */
+.barcode {
+  background: linear-gradient(to right,
+    #111 0%, #111 4%,
+    transparent 4%, transparent 6%,
+    #111 6%, #111 12%,
+    transparent 12%, transparent 14%,
+    #111 14%, #111 16%,
+    transparent 16%, transparent 20%,
+    #111 20%, #111 28%,
+    transparent 28%, transparent 32%,
+    #111 32%, #111 36%,
+    transparent 36%, transparent 40%,
+    #111 40%, #111 44%,
+    transparent 44%, transparent 46%,
+    #111 46%, #111 54%,
+    transparent 54%, transparent 58%,
+    #111 58%, #111 62%,
+    transparent 62%, transparent 64%,
+    #111 64%, #111 70%,
+    transparent 70%, transparent 72%,
+    #111 72%, #111 78%,
+    transparent 78%, transparent 84%,
+    #111 84%, #111 88%,
+    transparent 88%, transparent 90%,
+    #111 90%, #111 96%,
+    transparent 96%, transparent 100%
+  );
+}
+
+/* 装饰性色块 */
+.bg-teal { background-color: var(--c-teal); }
+.bg-yellow { background-color: var(--c-yellow); }
+.bg-red { background-color: var(--c-red); }
+.bg-navy { background-color: var(--c-navy); }
+.bg-orange { background-color: var(--c-orange); }
+
+.text-teal { color: var(--c-teal); }
+.text-yellow { color: var(--c-yellow); }
+.text-red { color: var(--c-red); }
+.text-navy { color: var(--c-navy); }
+.text-orange { color: var(--c-orange); }
+
+/* 混合模式 */
+.blend-difference { mix-blend-mode: difference; }
+.blend-exclusion { mix-blend-mode: exclusion; }
+
+/* 大字标题 */
+.font-display { font-family: var(--font-display); }
+.font-zh { font-family: var(--font-zh); }
+
+/* SVG 滤镜容器 */
+.svg-filters {
+  position: absolute;
+  width: 0;
+  height: 0;
+  pointer-events: none;
 }

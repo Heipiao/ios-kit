@@ -29,7 +29,7 @@ export function Login() {
           password,
         })
         if (error) throw error
-        navigate('/dashboard')
+        navigate('/')
       }
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : '操作失败')
@@ -39,115 +39,136 @@ export function Login() {
   }
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gray-50">
-      <div className="max-w-md w-full mx-4">
-        <div className="bg-white rounded-2xl shadow-lg p-8">
+    <div className="min-h-screen flex relative overflow-hidden">
+      {/* 背景装饰 */}
+      <div className="absolute inset-0 z-0">
+        <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
+          <defs>
+            <filter id="rough-stroke" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.1" numOctaves="2" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="5" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+            <filter id="torn-edge" x="-20%" y="-20%" width="140%" height="140%">
+              <feTurbulence type="fractalNoise" baseFrequency="0.04" numOctaves="3" result="noise" />
+              <feDisplacementMap in="SourceGraphic" in2="noise" scale="20" xChannelSelector="R" yChannelSelector="G" />
+            </filter>
+          </defs>
+
+          {/* 底色 */}
+          <rect width="100%" height="100%" fill="#F4F4F0" />
+
+          {/* 黄色色块 */}
+          <path d="M-100,400 L800,350 L800,800 L-100,800 Z" fill="#FFCC00" filter="url(#torn-edge)" />
+
+          {/* 红色色块 */}
+          <path d="M600,200 C800,100 1200,400 1500,300 C1700,250 1920,400 1920,400 L1920,600 C1600,800 1200,500 900,700 C600,900 200,600 -100,750 Z" fill="#E62A3B" filter="url(#torn-edge)" />
+
+          {/* 青色色块 */}
+          <path d="M1200,-100 L1920,-100 L1920,500 L1400,550 L1000,500 L1200,-100 Z" fill="#42C0B7" filter="url(#torn-edge)" />
+
+          {/* 装饰线条 */}
+          <g stroke="#111" strokeWidth="8" fill="none" strokeLinecap="round" filter="url(#rough-stroke)">
+            <path d="M 200,150 Q 300,100 400,200" />
+            <path d="M 1400,600 Q 1500,700 1600,550" />
+            <path d="M 100,900 C 150,900 150,1000 100,1000" />
+          </g>
+
+          {/* 白色覆盖层 */}
+          <path d="M-100,-100 L2000,-100 L2000,350 L1400,400 L800,350 L300,420 L-100,380 Z" fill="#F4F4F0" filter="url(#torn-edge)" />
+        </svg>
+      </div>
+
+      {/* 登录表单容器 */}
+      <div className="relative z-10 flex items-center justify-center w-full p-4">
+        <div className="max-w-md w-full">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-primary-100 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <span className="text-3xl">📱</span>
+            <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-black bg-yellow-400 mb-4" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)' }}>
+              <span className="text-4xl">📱</span>
             </div>
-            <h1 className="text-2xl font-bold text-gray-900">iOS Kit</h1>
-            <p className="text-gray-500 mt-2">一键生成 iOS 上架材料</p>
+            <h1 className="text-4xl font-display font-bold text-black uppercase tracking-wider">iOS Kit</h1>
+            <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">一键生成 iOS 上架材料</p>
           </div>
 
-          {/* Form */}
-          <form onSubmit={handleSubmit} className="space-y-4">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                邮箱
-              </label>
-              <input
-                type="email"
-                value={email}
-                onChange={(e) => setEmail(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="you@example.com"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                密码
-              </label>
-              <input
-                type="password"
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                className="w-full px-4 py-2 border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary-500"
-                placeholder="••••••••"
-              />
-            </div>
-
-            {error && (
-              <div className="text-sm text-red-600 bg-red-50 p-3 rounded-lg">
-                {error}
+          {/* 表单 */}
+          <form onSubmit={handleSubmit} className="card-brutal p-8 rounded-none">
+            <div className="space-y-5">
+              <div>
+                <label className="meta-label block mb-2">
+                  邮箱 / Email
+                </label>
+                <input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border-2 border-black bg-white focus:outline-none focus:ring-0 focus:border-yellow-400 transition-colors font-mono text-sm"
+                  placeholder="you@example.com"
+                />
               </div>
-            )}
 
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-2.5 bg-primary-600 text-white rounded-lg hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed font-medium"
-            >
-              {loading ? '请稍后...' : isSignUp ? '注册' : '登录'}
-            </button>
+              <div>
+                <label className="meta-label block mb-2">
+                  密码 / Password
+                </label>
+                <input
+                  type="password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                  className="w-full px-4 py-3 border-2 border-black bg-white focus:outline-none focus:ring-0 focus:border-yellow-400 transition-colors font-mono text-sm"
+                  placeholder="••••••••"
+                />
+              </div>
+
+              {error && (
+                <div className="text-sm font-bold text-white bg-red-500 p-3 border-2 border-black" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
+                  {error}
+                </div>
+              )}
+
+              <button
+                type="submit"
+                disabled={loading}
+                className="w-full btn-brutal disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {loading ? 'LOADING...' : isSignUp ? '注册 / SIGN UP' : '登录 / SIGN IN'}
+              </button>
+            </div>
+
+            {/* 切换 */}
+            <div className="mt-6 text-center">
+              <p className="text-xs font-medium text-gray-600 uppercase tracking-wider">
+                {isSignUp ? '已有账号？' : '还没有账号？'}
+                <button
+                  type="button"
+                  onClick={() => setIsSignUp(!isSignUp)}
+                  className="ml-2 text-black font-bold underline decoration-2 underline-offset-2 hover:text-red-600 transition-colors"
+                >
+                  {isSignUp ? '登录' : '注册'}
+                </button>
+              </p>
+            </div>
           </form>
 
-          {/* Toggle */}
-          <p className="mt-6 text-center text-sm text-gray-600">
-            {isSignUp ? '已有账号？' : '还没有账号？'}
-            <button
-              onClick={() => setIsSignUp(!isSignUp)}
-              className="ml-1 text-primary-600 hover:underline font-medium"
-            >
-              {isSignUp ? '登录' : '注册'}
-            </button>
-          </p>
-
-          {/* Divider */}
-          <div className="relative my-6">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-gray-200" />
+          {/* 装饰元素 */}
+          <div className="mt-6 flex items-center justify-between text-xs font-mono">
+            <div className="flex items-center gap-2">
+              <div className="w-3 h-3 border border-black bg-yellow-400" />
+              <span className="uppercase tracking-wider">SYS.REF // AUTH</span>
             </div>
-            <div className="relative flex justify-center text-sm">
-              <span className="px-4 bg-white text-gray-500">或继续方式</span>
-            </div>
-          </div>
-
-          {/* Social Login (placeholder) */}
-          <div className="grid grid-cols-2 gap-3">
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" viewBox="0 0 24 24">
-                <path
-                  fill="#4285F4"
-                  d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"
-                />
-                <path
-                  fill="#34A853"
-                  d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"
-                />
-                <path
-                  fill="#FBBC05"
-                  d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l2.85-2.22.81-.62z"
-                />
-                <path
-                  fill="#EA4335"
-                  d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
-                />
-              </svg>
-              Google
-            </button>
-            <button className="flex items-center justify-center gap-2 px-4 py-2.5 border rounded-lg hover:bg-gray-50 transition-colors">
-              <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
-                <path d="M12 2C6.477 2 2 6.477 2 12c0 5.523 4.477 10 10 10s10-4.477 10-10c0-5.523-4.477-10-10-10zm0 18c-4.418 0-8-3.582-8-8s3.582-8 8-8 8 3.582 8 8-3.582 8-8 8z" />
-              </svg>
-              Apple
-            </button>
+            <div className="w-24 h-6 barcode" />
           </div>
         </div>
+      </div>
+
+      {/* 装饰性标记 */}
+      <div className="absolute top-4 right-4 z-20 w-6 h-6 border-2 border-black flex items-center justify-center">
+        <div className="w-full h-0.5 bg-black absolute" />
+        <div className="h-full w-0.5 bg-black absolute" />
+      </div>
+      <div className="absolute bottom-4 left-4 z-20 w-6 h-6 border-2 border-black bg-yellow-400 flex items-center justify-center">
+        <span className="text-xs font-bold">⚡</span>
       </div>
     </div>
   )

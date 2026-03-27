@@ -11,11 +11,18 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
   const isActive = (path: string) => location.pathname === path
 
   return (
-    <div className="w-60 border-r bg-white flex flex-col h-full">
+    <div className="w-64 border-r-2 border-black bg-white flex flex-col h-full">
       {/* Logo */}
-      <div className="p-4 border-b">
-        <h1 className="text-xl font-bold text-primary-600">📱 iOS Kit</h1>
-        <p className="text-xs text-gray-500 mt-1">AI 生成上架材料</p>
+      <div className="p-4 border-b-2 border-black bg-yellow-400">
+        <div className="flex items-center gap-2">
+          <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
+            <span className="text-xl">📱</span>
+          </div>
+          <div>
+            <h1 className="text-lg font-display font-bold uppercase tracking-wider leading-none">iOS Kit</h1>
+            <p className="text-xs font-mono uppercase tracking-widest leading-none mt-1">AI Studio</p>
+          </div>
+        </div>
       </div>
 
       {/* Navigation */}
@@ -24,69 +31,78 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
           <li>
             <Link
               to="/"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/') ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-100'
+              className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
+                isActive('/')
+                  ? 'bg-black text-white border-black'
+                  : 'border-transparent hover:border-black hover:bg-yellow-50'
               }`}
+              style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <Home className="w-5 h-5" />
-              <span>首页</span>
+              <span className="font-bold text-sm uppercase tracking-wide">首页</span>
             </Link>
           </li>
           <li>
             <Link
               to="/screenshots"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/screenshots') ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-100'
+              className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
+                isActive('/screenshots')
+                  ? 'bg-black text-white border-black'
+                  : 'border-transparent hover:border-black hover:bg-yellow-50'
               }`}
+              style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <Image className="w-5 h-5" />
-              <span>截图工厂</span>
+              <span className="font-bold text-sm uppercase tracking-wide">截图工厂</span>
             </Link>
           </li>
           <li>
             <Link
               to="/editor"
-              className={`flex items-center gap-3 px-3 py-2 rounded-lg transition-colors ${
-                isActive('/editor') ? 'bg-primary-50 text-primary-600' : 'hover:bg-gray-100'
+              className={`flex items-center gap-3 px-3 py-3 transition-all border-2 ${
+                isActive('/editor')
+                  ? 'bg-black text-white border-black'
+                  : 'border-transparent hover:border-black hover:bg-yellow-50'
               }`}
+              style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}
             >
               <FileText className="w-5 h-5" />
-              <span>元数据</span>
+              <span className="font-bold text-sm uppercase tracking-wide">元数据</span>
             </Link>
           </li>
         </ul>
 
         {/* Projects */}
         <div className="mt-6">
-          <div className="flex items-center justify-between px-3 py-2">
-            <span className="text-xs font-semibold text-gray-500 uppercase">
-              项目
+          <div className="flex items-center justify-between px-3 py-2 border-t-2 border-black mt-4">
+            <span className="text-xs font-display font-bold uppercase tracking-widest">
+              项目 / Projects
             </span>
             <button
               onClick={onCreateProject}
-              className="p-1 hover:bg-gray-100 rounded"
+              className="p-1 hover:bg-black hover:text-white transition-colors border border-black"
               title="新建项目"
             >
               <Plus className="w-4 h-4" />
             </button>
           </div>
-          <ul className="mt-1 space-y-1">
+          <ul className="mt-2 space-y-1">
             <li>
               <a
                 href="#"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                className="flex items-center gap-3 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-yellow-50 transition-all"
               >
-                <span className="w-2 h-2 bg-green-500 rounded-full" />
-                Fitness App
+                <span className="w-2 h-2 bg-green-500 border border-black" />
+                <span className="text-sm font-bold uppercase tracking-wide">Fitness App</span>
               </a>
             </li>
             <li>
               <a
                 href="#"
-                className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors text-sm"
+                className="flex items-center gap-3 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-yellow-50 transition-all"
               >
-                <span className="w-2 h-2 bg-gray-300 rounded-full" />
-                记事本
+                <span className="w-2 h-2 bg-gray-300 border border-black" />
+                <span className="text-sm font-bold uppercase tracking-wide">记事本</span>
               </a>
             </li>
           </ul>
@@ -94,15 +110,18 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
       </nav>
 
       {/* Footer */}
-      <div className="p-2 border-t">
+      <div className="p-3 border-t-2 border-black bg-gray-50">
         <a
           href="#"
-          className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors"
+          className="flex items-center gap-3 px-3 py-2 border-2 border-transparent hover:border-black hover:bg-white transition-all"
         >
           <Settings className="w-5 h-5" />
-          <span>设置</span>
+          <span className="font-bold text-sm uppercase">设置</span>
         </a>
       </div>
+
+      {/* 装饰元素 */}
+      <div className="absolute bottom-3 right-3 w-4 h-4 border border-black opacity-30" />
     </div>
   )
 }
