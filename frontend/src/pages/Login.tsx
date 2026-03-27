@@ -22,7 +22,7 @@ export function Login() {
           password,
         })
         if (error) throw error
-        alert('注册成功！请检查邮箱验证链接')
+        alert('Account created! Please check your email for verification link.')
       } else {
         const { error } = await supabase.auth.signInWithPassword({
           email,
@@ -32,7 +32,7 @@ export function Login() {
         navigate('/dashboard')
       }
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : '操作失败')
+      setError(err instanceof Error ? err.message : 'Operation failed')
     } finally {
       setLoading(false)
     }
@@ -40,7 +40,7 @@ export function Login() {
 
   return (
     <div className="min-h-screen flex relative overflow-hidden">
-      {/* 背景装饰 */}
+      {/* Background decoration */}
       <div className="absolute inset-0 z-0">
         <svg className="w-full h-full" viewBox="0 0 1920 1080" preserveAspectRatio="xMidYMid slice">
           <defs>
@@ -54,31 +54,31 @@ export function Login() {
             </filter>
           </defs>
 
-          {/* 底色 */}
+          {/* Base color */}
           <rect width="100%" height="100%" fill="#F4F4F0" />
 
-          {/* 黄色色块 */}
+          {/* Yellow block */}
           <path d="M-100,400 L800,350 L800,800 L-100,800 Z" fill="#FFCC00" filter="url(#torn-edge)" />
 
-          {/* 红色色块 */}
+          {/* Red block */}
           <path d="M600,200 C800,100 1200,400 1500,300 C1700,250 1920,400 1920,400 L1920,600 C1600,800 1200,500 900,700 C600,900 200,600 -100,750 Z" fill="#E62A3B" filter="url(#torn-edge)" />
 
-          {/* 青色色块 */}
+          {/* Teal block */}
           <path d="M1200,-100 L1920,-100 L1920,500 L1400,550 L1000,500 L1200,-100 Z" fill="#42C0B7" filter="url(#torn-edge)" />
 
-          {/* 装饰线条 */}
+          {/* Decorative lines */}
           <g stroke="#111" strokeWidth="8" fill="none" strokeLinecap="round" filter="url(#rough-stroke)">
             <path d="M 200,150 Q 300,100 400,200" />
             <path d="M 1400,600 Q 1500,700 1600,550" />
             <path d="M 100,900 C 150,900 150,1000 100,1000" />
           </g>
 
-          {/* 白色覆盖层 */}
+          {/* White overlay */}
           <path d="M-100,-100 L2000,-100 L2000,350 L1400,400 L800,350 L300,420 L-100,380 Z" fill="#F4F4F0" filter="url(#torn-edge)" />
         </svg>
       </div>
 
-      {/* 登录表单容器 */}
+      {/* Login form container */}
       <div className="relative z-10 flex items-center justify-center w-full p-4">
         <div className="max-w-md w-full">
           {/* Logo */}
@@ -87,15 +87,15 @@ export function Login() {
               <span className="text-4xl">📱</span>
             </div>
             <h1 className="text-4xl font-display font-bold text-black uppercase tracking-wider">iOS Kit</h1>
-            <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">AI 驱动的上架工作室</p>
+            <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">AI-Powered App Store Studio</p>
           </div>
 
-          {/* 表单 */}
+          {/* Form */}
           <form onSubmit={handleSubmit} className="card-brutal p-8 rounded-none">
             <div className="space-y-5">
               <div>
                 <label className="meta-label block mb-2">
-                  邮箱
+                  Email Address
                 </label>
                 <input
                   type="email"
@@ -109,7 +109,7 @@ export function Login() {
 
               <div>
                 <label className="meta-label block mb-2">
-                  密码
+                  Password
                 </label>
                 <input
                   type="password"
@@ -132,37 +132,37 @@ export function Login() {
                 disabled={loading}
                 className="w-full btn-brutal disabled:opacity-50 disabled:cursor-not-allowed"
               >
-                {loading ? '加载中...' : isSignUp ? '注册账号' : '登录'}
+                {loading ? 'Loading...' : isSignUp ? 'Create Account' : 'Sign In'}
               </button>
             </div>
 
-            {/* 切换 */}
+            {/* Toggle */}
             <div className="mt-6 text-center">
               <p className="text-xs font-medium text-gray-600 uppercase tracking-wider">
-                {isSignUp ? '已有账号？' : '还没有账号？'}
+                {isSignUp ? 'Already have an account?' : "Don't have an account?"}
                 <button
                   type="button"
                   onClick={() => setIsSignUp(!isSignUp)}
                   className="ml-2 text-black font-bold underline decoration-2 underline-offset-2 hover:text-red-600 transition-colors"
                 >
-                  {isSignUp ? '登录' : '注册'}
+                  {isSignUp ? 'Sign In' : 'Sign Up'}
                 </button>
               </p>
             </div>
           </form>
 
-          {/* 装饰元素 */}
+          {/* Decorative element */}
           <div className="mt-6 flex items-center justify-between text-xs font-mono">
             <div className="flex items-center gap-2">
               <div className="w-3 h-3 border border-black bg-yellow-400" />
-              <span className="uppercase tracking-wider">SYS.REF // 认证</span>
+              <span className="uppercase tracking-wider">SYS.REF // AUTH</span>
             </div>
             <div className="w-24 h-6 barcode" />
           </div>
         </div>
       </div>
 
-      {/* 装饰性标记 */}
+      {/* Decorative markers */}
       <div className="absolute top-4 right-4 z-20 w-6 h-6 border-2 border-black flex items-center justify-center">
         <div className="w-full h-0.5 bg-black absolute" />
         <div className="h-full w-0.5 bg-black absolute" />
