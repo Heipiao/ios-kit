@@ -5,6 +5,9 @@ import { LandingPage } from './pages/LandingPage'
 import { Dashboard } from './pages/Dashboard'
 import { ProjectEditor } from './pages/ProjectEditor'
 import { ScreenshotFactory } from './pages/ScreenshotFactory'
+import { Terms } from './pages/Terms'
+import { Privacy } from './pages/Privacy'
+import { About } from './pages/About'
 import { ProtectedRoute } from './components/ProtectedRoute'
 
 function App() {
@@ -13,6 +16,9 @@ function App() {
       <Routes>
         <Route path="/login" element={<Login />} />
         <Route path="/" element={<LandingPage />} />
+        <Route path="/terms" element={<Terms />} />
+        <Route path="/privacy" element={<Privacy />} />
+        <Route path="/about" element={<About />} />
         <Route
           path="/dashboard"
           element={
