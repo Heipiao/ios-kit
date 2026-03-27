@@ -1,7 +1,8 @@
 {
+  "rootDirectory": "frontend",
   "buildCommand": "npm run build -- --mode production",
   "outputDirectory": "dist",
-  "installCommand": "npm install --frozen-lockfile",
+  "installCommand": "npm install",
   "framework": "vite",
   "rewrites": [
     {
@@ -9,5 +10,6 @@
       "destination": "/index.html"
     }
   ],
-  "regions": ["hnd1"]
+  "regions": ["hnd1"],
+  "nodeVersion": 20
 }
