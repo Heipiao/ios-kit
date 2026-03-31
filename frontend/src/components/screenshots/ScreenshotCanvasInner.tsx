@@ -16,7 +16,8 @@ export interface ScreenshotCanvasProps {
   onExportReady: (dataUrl: string) => void
 }
 
-// Phone frame component with realistic iPhone styling
+// Phone frame component based on devices.css styling
+// Reference: https://github.com/nickolasclarke/devices.css
 function PhoneFrame({ width, height, children }: { width: number; height: number; children: React.ReactNode }) {
   const cornerRadius = Math.min(width, height) * 0.14
   const borderWidth = Math.max(8, Math.min(width, height) * 0.025)
@@ -26,92 +27,161 @@ function PhoneFrame({ width, height, children }: { width: number; height: number
 
   return (
     <Group>
-      {/* Outer metallic frame with multi-layer gradient for depth */}
+      {/* Device body - aluminum frame with metallic gradient */}
       <Rect
         width={width}
         height={height}
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{ x: width, y: height }}
-        fillLinearGradientColorStops={[0, '#3a3a3a', 0.2, '#1f1f1f', 0.5, '#0d0d0d', 0.8, '#1a1a1a', 1, '#2d2d2d']}
+        fillLinearGradientColorStops={[
+          0, '#c9caca',
+          0.1, '#d9dbdc',
+          0.5, '#f8f8f8',
+          0.9, '#d9dbdc',
+          1, '#a7a9ac'
+        ]}
         cornerRadius={cornerRadius}
-        shadowColor="rgba(0,0,0,0.7)"
-        shadowBlur={40}
-        shadowOffset={{ x: 0, y: 20 }}
+        shadowColor="rgba(0,0,0,0.3)"
+        shadowBlur={20}
+        shadowOffset={{ x: 0, y: 10 }}
       />
-      {/* Metallic edge highlight */}
-      <Rect
-        x={2}
-        y={2}
-        width={width - 4}
-        height={height - 4}
-        stroke="rgba(255,255,255,0.2)"
-        strokeWidth={2}
-        cornerRadius={cornerRadius - 2}
-      />
-      {/* Inner bezel - deep black */}
+
+      {/* Inner bezel - screen border */}
       <Rect
         x={borderWidth}
         y={borderWidth}
         width={width - borderWidth * 2}
         height={height - borderWidth * 2}
-        fill="#050505"
+        fill="#000000"
         cornerRadius={screenCornerRadius}
-        shadowColor="rgba(0,0,0,0.8)"
-        shadowBlur={10}
-        shadowOffset={{ x: 0, y: 2 }}
       />
-      {/* Notch with subtle gradient */}
+
+      {/* Screen inner highlight */}
+      <Rect
+        x={borderWidth + 2}
+        y={borderWidth + 2}
+        width={width - borderWidth * 2 - 4}
+        height={height - borderWidth * 2 - 4}
+        fill="#1a1a1a"
+        cornerRadius={screenCornerRadius - 2}
+      />
+
+      {/* Top bar (speaker area) */}
+      <Rect
+        x={borderWidth}
+        y={Math.round(height * 0.03)}
+        width={width - borderWidth * 2}
+        height={Math.round(height * 0.02)}
+        fill="#bfbfc0"
+        cornerRadius={2}
+      />
+
+      {/* Bottom bar (chin) */}
+      <Rect
+        x={borderWidth}
+        y={height - borderWidth - Math.round(height * 0.02)}
+        width={width - borderWidth * 2}
+        height={Math.round(height * 0.02)}
+        fill="#bfbfc0"
+        cornerRadius={2}
+      />
+
+      {/* Notch */}
       <Rect
         x={(width - notchWidth) / 2}
         y={borderWidth - 1}
         width={notchWidth}
         height={notchHeight}
-        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-        fillLinearGradientEndPoint={{ x: 0, y: notchHeight }}
-        fillLinearGradientColorStops={[0, '#1a1a1a', 1, '#0a0a0a']}
+        fill="#000000"
         cornerRadius={4}
       />
-      {/* Speaker mesh in notch */}
+
+      {/* Speaker grill in notch */}
       <Rect
-        x={(width - notchWidth * 0.6) / 2}
+        x={(width - notchWidth * 0.5) / 2}
         y={borderWidth}
-        width={notchWidth * 0.6}
-        height={2}
+        width={notchWidth * 0.5}
+        height={3}
         fill="#2a2a2a"
-        cornerRadius={1}
+        cornerRadius={1.5}
       />
-      {/* Screen area - where content shows */}
+
+      {/* Front camera */}
+      <Circle
+        x={width * 0.5}
+        y={borderWidth + 8}
+        radius={5}
+        fill="#3c3d3d"
+      />
+      <Circle
+        x={width * 0.5}
+        y={borderWidth + 8}
+        radius={3}
+        fill="#1a1a1a"
+      />
+
+      {/* Screen area - content goes here */}
       <Group
         x={borderWidth + 4}
-        y={borderWidth + 4}
+        y={borderWidth + 20}
         width={width - borderWidth * 2 - 8}
-        height={height - borderWidth * 2 - 8}
+        height={height - borderWidth * 2 - 24}
         clipFunc={(ctx) => {
           const r = screenCornerRadius - 4
           ctx.beginPath()
-          ctx.roundRect(0, 0, width - borderWidth * 2 - 8, height - borderWidth * 2 - 8, r)
+          ctx.roundRect(0, 0, width - borderWidth * 2 - 8, height - borderWidth * 2 - 24, r)
           ctx.closePath()
         }}
       >
         {children}
       </Group>
-      {/* Inner screen highlight edge */}
-      <Rect
-        x={borderWidth + 4}
-        y={borderWidth + 4}
-        width={width - borderWidth * 2 - 8}
-        height={height - borderWidth * 2 - 8}
-        stroke="rgba(255,255,255,0.12)"
-        strokeWidth={1.5}
-        cornerRadius={screenCornerRadius - 4}
-      />
-      {/* Outer glow for depth */}
+
+      {/* Outer edge highlight */}
       <Rect
         width={width}
         height={height}
-        stroke="rgba(255,255,255,0.08)"
+        stroke="rgba(255,255,255,0.5)"
         strokeWidth={1}
         cornerRadius={cornerRadius}
+      />
+
+      {/* Inner screen edge highlight */}
+      <Rect
+        x={borderWidth + 4}
+        y={borderWidth + 20}
+        width={width - borderWidth * 2 - 8}
+        height={height - borderWidth * 2 - 24}
+        stroke="rgba(255,255,255,0.15)"
+        strokeWidth={1}
+        cornerRadius={screenCornerRadius - 4}
+      />
+
+      {/* Side buttons - Sleep/Wake (right side) */}
+      <Rect
+        x={width - 2}
+        y={height * 0.28}
+        width={3}
+        height={height * 0.1}
+        fill="#bfbfc0"
+        cornerRadius={2}
+      />
+
+      {/* Volume buttons (left side) */}
+      <Rect
+        x={-1}
+        y={height * 0.28}
+        width={3}
+        height={height * 0.06}
+        fill="#bfbfc0"
+        cornerRadius={2}
+      />
+      <Rect
+        x={-1}
+        y={height * 0.36}
+        width={3}
+        height={height * 0.06}
+        fill="#bfbfc0"
+        cornerRadius={2}
       />
     </Group>
   )
