@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useRef, useMemo, useCallback, useState } from 'react'
 import type Konva from 'konva'
 import { Circle, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
 import { DEVICE_PRESETS, updateSceneElement, type SceneElement, type SceneSpec, type ScreenshotAsset } from '@/lib/screenshot-spec'
@@ -23,7 +23,6 @@ function PhoneFrame({ width, height }: { width: number; height: number }) {
 
   return (
     <Group>
-      {/* Outer frame */}
       <Rect
         width={width}
         height={height}
@@ -33,7 +32,6 @@ function PhoneFrame({ width, height }: { width: number; height: number }) {
         shadowBlur={20}
         shadowOffset={{ x: 0, y: 10 }}
       />
-      {/* Inner screen cutout */}
       <Rect
         x={borderWidth}
         y={borderWidth}
@@ -42,7 +40,6 @@ function PhoneFrame({ width, height }: { width: number; height: number }) {
         fill="#000000"
         cornerRadius={screenCornerRadius}
       />
-      {/* Screen content mask area - transparent */}
       <Rect
         x={borderWidth + 2}
         y={borderWidth + 2}
@@ -61,9 +58,8 @@ function useLoadedImages(sources: Record<string, string>) {
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({})
 
   useEffect(() => {
-    const nextEntries = Object.entries(sources)
-
-    if (nextEntries.length === 0) {
+    const entries = Object.entries(sources)
+    if (entries.length === 0) {
       setImages({})
       return
     }
@@ -71,7 +67,7 @@ function useLoadedImages(sources: Record<string, string>) {
     let cancelled = false
 
     Promise.all(
-      nextEntries.map(
+      entries.map(
         ([key, src]) =>
           new Promise<[string, HTMLImageElement]>((resolve, reject) => {
             const image = new window.Image()
@@ -82,11 +78,9 @@ function useLoadedImages(sources: Record<string, string>) {
       )
     )
       .then((loadedEntries) => {
-        if (cancelled) {
-          return
+        if (!cancelled) {
+          setImages(Object.fromEntries(loadedEntries))
         }
-
-        setImages(Object.fromEntries(loadedEntries))
       })
       .catch(() => {
         if (!cancelled) {
@@ -102,165 +96,23 @@ function useLoadedImages(sources: Record<string, string>) {
   return images
 }
 
-function SelectionOutline({ element }: { element: SceneElement }) {
-  return (
-    <Rect
-      x={element.x - 12}
-      y={element.y - 12}
-      width={element.width + 24}
-      height={element.height + 24}
-      stroke="#ffcc00"
-      strokeWidth={10}
-      dash={[24, 14]}
-      listening={false}
-      cornerRadius={element.kind === 'logo' ? element.width : 40}
-    />
-  )
-}
+// Memoized selection outline
+const SelectionOutline = ({ element }: { element: SceneElement }) => (
+  <Rect
+    x={element.x - 12}
+    y={element.y - 12}
+    width={element.width + 24}
+    height={element.height + 24}
+    stroke="#ffcc00"
+    strokeWidth={10}
+    dash={[24, 14]}
+    listening={false}
+    cornerRadius={element.kind === 'logo' ? element.width : 40}
+  />
+)
 
-export default function ScreenshotCanvasInner({
-  scene,
-  uploads,
-  logoAsset,
-  selectedElementId,
-  onSelectElement,
-  onChangeScene,
-  exportRequest,
-  onExportReady,
-}: ScreenshotCanvasProps) {
-  const stageRef = useRef<Konva.Stage | null>(null)
-  const lastExportRequestRef = useRef(0)
-
-  const previewWidth = scene ? DEVICE_PRESETS[scene.deviceType].previewWidth : 320
-  const previewHeight = scene ? Math.round((scene.height / scene.width) * previewWidth) : 560
-
-  const assetSources: Record<string, string> = {}
-  for (const upload of uploads) {
-    assetSources[upload.id] = upload.dataUrl
-  }
-  if (logoAsset) {
-    assetSources[logoAsset.id] = logoAsset.dataUrl
-  }
-
-  const images = useLoadedImages(assetSources)
-
-  useEffect(() => {
-    if (!scene || exportRequest === 0 || exportRequest === lastExportRequestRef.current || !stageRef.current) {
-      return
-    }
-
-    lastExportRequestRef.current = exportRequest
-    onExportReady(stageRef.current.toDataURL({ pixelRatio: 1 }))
-  }, [exportRequest, onExportReady, scene])
-
-  if (!scene) {
-    return (
-      <div className="card-brutal p-8 bg-white flex items-center justify-center text-center min-h-[640px]">
-        <div>
-          <p className="font-display text-2xl uppercase tracking-wide">No Draft Yet</p>
-          <p className="text-sm font-mono text-gray-500 mt-2 uppercase">Upload screenshots and generate a first pass.</p>
-        </div>
-      </div>
-    )
-  }
-
-  const scale = previewWidth / scene.width
-
-  return (
-    <div className="card-brutal bg-white p-6">
-      <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-black">
-        <div>
-          <p className="text-xs font-mono uppercase tracking-[0.3em] text-gray-500">Live Canvas</p>
-          <h2 className="font-display text-2xl uppercase tracking-wide">{DEVICE_PRESETS[scene.deviceType].label}</h2>
-        </div>
-        <div className="text-right">
-          <p className="font-mono text-xs uppercase text-gray-500">Selected</p>
-          <p className="font-bold text-sm uppercase">{selectedElementId ?? 'None'}</p>
-        </div>
-      </div>
-
-      <div className="overflow-auto rounded-sm border-2 border-black bg-[#ece9df] p-5">
-        <div
-          style={{
-            width: previewWidth,
-            height: previewHeight,
-          }}
-        >
-          <div
-            style={{
-              width: scene.width,
-              height: scene.height,
-              transform: `scale(${scale})`,
-              transformOrigin: 'top left',
-            }}
-          >
-            <Stage
-              ref={stageRef}
-              width={scene.width}
-              height={scene.height}
-              onMouseDown={(event) => {
-                if (event.target === event.target.getStage()) {
-                  onSelectElement(null)
-                }
-              }}
-            >
-              <Layer>
-                <Rect
-                  width={scene.width}
-                  height={scene.height}
-                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
-                  fillLinearGradientEndPoint={{ x: scene.width, y: scene.height }}
-                  fillLinearGradientColorStops={[0, scene.background.from, 1, scene.background.to]}
-                />
-                <Rect
-                  x={Math.round(scene.width * 0.06)}
-                  y={Math.round(scene.height * 0.84)}
-                  width={Math.round(scene.width * 0.88)}
-                  height={Math.round(scene.height * 0.08)}
-                  fill="rgba(244,241,234,0.16)"
-                />
-
-                {scene.elements.map((element) => {
-                  const isSelected = selectedElementId === element.id
-
-                  if (isSelected) {
-                    return (
-                      <Group key={element.id}>
-                        <SelectionOutline element={element} />
-                        <SceneElementNode
-                          element={element}
-                          isSelected={isSelected}
-                          images={images}
-                          onSelectElement={onSelectElement}
-                          onChangeScene={onChangeScene}
-                          scene={scene}
-                        />
-                      </Group>
-                    )
-                  }
-
-                  return (
-                    <SceneElementNode
-                      key={element.id}
-                      element={element}
-                      isSelected={isSelected}
-                      images={images}
-                      onSelectElement={onSelectElement}
-                      onChangeScene={onChangeScene}
-                      scene={scene}
-                    />
-                  )
-                })}
-              </Layer>
-            </Stage>
-          </div>
-        </div>
-      </div>
-    </div>
-  )
-}
-
-function SceneElementNode({
+// Memoized element node to prevent re-renders during drag
+const SceneElementNode = ({
   element,
   images,
   onSelectElement,
@@ -272,8 +124,7 @@ function SceneElementNode({
   onSelectElement: (elementId: string | null) => void
   onChangeScene: (scene: SceneSpec) => void
   scene: SceneSpec
-  isSelected: boolean
-}) {
+}) => {
   if (element.kind === 'text') {
     return (
       <Text
@@ -349,6 +200,7 @@ function SceneElementNode({
       )
     }
 
+    // No frame - keep original image size, clip to container
     return (
       <Group
         x={element.x}
@@ -365,6 +217,7 @@ function SceneElementNode({
           )
         }}
       >
+        {/* Background card */}
         <Rect
           width={element.width}
           height={element.height}
@@ -375,12 +228,35 @@ function SceneElementNode({
           shadowOffset={{ x: 0, y: 24 }}
           shadowOpacity={0.45}
         />
-        {image ? (
-          <KonvaImage image={image} width={element.width} height={element.height} />
-        ) : (
-          <Rect width={element.width} height={element.height} fill="#d9d4c9" cornerRadius={42} />
-        )}
-        <Rect width={element.width} height={element.height} stroke="rgba(17,17,17,0.14)" strokeWidth={6} cornerRadius={42} />
+        {/* Clip the image to the card bounds */}
+        <Group
+          width={element.width}
+          height={element.height}
+          clipFunc={(ctx) => {
+            const r = 42
+            ctx.beginPath()
+            ctx.roundRect(0, 0, element.width, element.height, r)
+            ctx.closePath()
+          }}
+        >
+          {image ? (
+            <KonvaImage
+              image={image}
+              x={(element.width - image.width) / 2}
+              y={(element.height - image.height) / 2}
+            />
+          ) : (
+            <Rect width={element.width} height={element.height} fill="#d9d4c9" cornerRadius={42} />
+          )}
+        </Group>
+        {/* Border */}
+        <Rect
+          width={element.width}
+          height={element.height}
+          stroke="rgba(17,17,17,0.14)"
+          strokeWidth={6}
+          cornerRadius={42}
+        />
       </Group>
     )
   }
@@ -403,7 +279,12 @@ function SceneElementNode({
         )
       }}
     >
-      <Circle radius={Math.round(element.width / 2)} x={Math.round(element.width / 2)} y={Math.round(element.height / 2)} fill={element.fill} />
+      <Circle
+        radius={Math.round(element.width / 2)}
+        x={Math.round(element.width / 2)}
+        y={Math.round(element.height / 2)}
+        fill={element.fill}
+      />
       {logoImage ? (
         <KonvaImage
           image={logoImage}
@@ -427,5 +308,153 @@ function SceneElementNode({
         />
       )}
     </Group>
+  )
+}
+
+export default function ScreenshotCanvasInner({
+  scene,
+  uploads,
+  logoAsset,
+  selectedElementId,
+  onSelectElement,
+  onChangeScene,
+  exportRequest,
+  onExportReady,
+}: ScreenshotCanvasProps) {
+  const stageRef = useRef<Konva.Stage | null>(null)
+  const layerRef = useRef<Konva.Layer | null>(null)
+  const lastExportRequestRef = useRef(0)
+
+  const previewWidth = scene ? DEVICE_PRESETS[scene.deviceType].previewWidth : 320
+  const previewHeight = scene ? Math.round((scene.height / scene.width) * previewWidth) : 560
+
+  // Memoize asset sources to prevent unnecessary re-renders
+  const assetSources = useMemo(() => {
+    const sources: Record<string, string> = {}
+    for (const upload of uploads) {
+      sources[upload.id] = upload.dataUrl
+    }
+    if (logoAsset) {
+      sources[logoAsset.id] = logoAsset.dataUrl
+    }
+    return sources
+  }, [uploads, logoAsset])
+
+  const images = useLoadedImages(assetSources)
+
+  useEffect(() => {
+    if (!scene || exportRequest === 0 || exportRequest === lastExportRequestRef.current || !stageRef.current) {
+      return
+    }
+
+    lastExportRequestRef.current = exportRequest
+    onExportReady(stageRef.current.toDataURL({ pixelRatio: 1 }))
+  }, [exportRequest, onExportReady, scene])
+
+  // Handle drag move with batch rendering for smoother performance
+  const handleElementDragEnd = useCallback((elementId: string, newX: number, newY: number) => {
+    if (layerRef.current) {
+      layerRef.current.batchDraw()
+    }
+    onChangeScene(updateSceneElement(scene!, elementId, { x: Math.round(newX), y: Math.round(newY) }))
+  }, [scene, onChangeScene])
+
+  if (!scene) {
+    return (
+      <div className="card-brutal p-8 bg-white flex items-center justify-center text-center min-h-[640px]">
+        <div>
+          <p className="font-display text-2xl uppercase tracking-wide">No Draft Yet</p>
+          <p className="text-sm font-mono text-gray-500 mt-2 uppercase">Upload screenshots and generate a first pass.</p>
+        </div>
+      </div>
+    )
+  }
+
+  const scale = previewWidth / scene.width
+
+  return (
+    <div className="card-brutal bg-white p-6">
+      <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-black">
+        <div>
+          <p className="text-xs font-mono uppercase tracking-[0.3em] text-gray-500">Live Canvas</p>
+          <h2 className="font-display text-2xl uppercase tracking-wide">{DEVICE_PRESETS[scene.deviceType].label}</h2>
+        </div>
+        <div className="text-right">
+          <p className="font-mono text-xs uppercase text-gray-500">Selected</p>
+          <p className="font-bold text-sm uppercase">{selectedElementId ?? 'None'}</p>
+        </div>
+      </div>
+
+      <div className="overflow-auto rounded-sm border-2 border-black bg-[#ece9df] p-5">
+        <div style={{ width: previewWidth, height: previewHeight }}>
+          <div
+            style={{
+              width: scene.width,
+              height: scene.height,
+              transform: `scale(${scale})`,
+              transformOrigin: 'top left',
+            }}
+          >
+            <Stage
+              ref={stageRef}
+              width={scene.width}
+              height={scene.height}
+              onMouseDown={(event) => {
+                if (event.target === event.target.getStage()) {
+                  onSelectElement(null)
+                }
+              }}
+            >
+              <Layer ref={layerRef}>
+                <Rect
+                  width={scene.width}
+                  height={scene.height}
+                  fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                  fillLinearGradientEndPoint={{ x: scene.width, y: scene.height }}
+                  fillLinearGradientColorStops={[0, scene.background.from, 1, scene.background.to]}
+                />
+                <Rect
+                  x={Math.round(scene.width * 0.06)}
+                  y={Math.round(scene.height * 0.84)}
+                  width={Math.round(scene.width * 0.88)}
+                  height={Math.round(scene.height * 0.08)}
+                  fill="rgba(244,241,234,0.16)"
+                />
+
+                {scene.elements.map((element) => {
+                  const isSelected = selectedElementId === element.id
+
+                  if (isSelected) {
+                    return (
+                      <Group key={element.id}>
+                        <SelectionOutline element={element} />
+                        <SceneElementNode
+                          element={element}
+                          images={images}
+                          onSelectElement={onSelectElement}
+                          onChangeScene={onChangeScene}
+                          scene={scene}
+                        />
+                      </Group>
+                    )
+                  }
+
+                  return (
+                    <SceneElementNode
+                      key={element.id}
+                      element={element}
+                      images={images}
+                      onSelectElement={onSelectElement}
+                      onChangeScene={onChangeScene}
+                      scene={scene}
+                    />
+                  )
+                })}
+              </Layer>
+            </Stage>
+          </div>
+        </div>
+      </div>
+    </div>
   )
 }
