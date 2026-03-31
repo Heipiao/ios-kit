@@ -16,70 +16,102 @@ export interface ScreenshotCanvasProps {
   onExportReady: (dataUrl: string) => void
 }
 
-// Phone frame component using simple but visible styling
+// Phone frame component with realistic iPhone styling
 function PhoneFrame({ width, height, children }: { width: number; height: number; children: React.ReactNode }) {
-  const cornerRadius = Math.min(width, height) * 0.12
-  const borderWidth = Math.max(6, Math.min(width, height) * 0.02)
+  const cornerRadius = Math.min(width, height) * 0.14
+  const borderWidth = Math.max(8, Math.min(width, height) * 0.025)
   const screenCornerRadius = cornerRadius - borderWidth
-  const notchWidth = width * 0.25
-  const notchHeight = borderWidth * 1.2
+  const notchWidth = width * 0.32
+  const notchHeight = borderWidth * 1.4
 
   return (
     <Group>
-      {/* Outer frame with gradient for depth */}
+      {/* Outer metallic frame with multi-layer gradient for depth */}
       <Rect
         width={width}
         height={height}
         fillLinearGradientStartPoint={{ x: 0, y: 0 }}
         fillLinearGradientEndPoint={{ x: width, y: height }}
-        fillLinearGradientColorStops={[0, '#2a2a2a', 0.5, '#1a1a1a', 1, '#0a0a0a']}
+        fillLinearGradientColorStops={[0, '#3a3a3a', 0.2, '#1f1f1f', 0.5, '#0d0d0d', 0.8, '#1a1a1a', 1, '#2d2d2d']}
         cornerRadius={cornerRadius}
-        shadowColor="rgba(0,0,0,0.6)"
-        shadowBlur={30}
-        shadowOffset={{ x: 0, y: 15 }}
+        shadowColor="rgba(0,0,0,0.7)"
+        shadowBlur={40}
+        shadowOffset={{ x: 0, y: 20 }}
       />
-      {/* Inner bezel */}
+      {/* Metallic edge highlight */}
+      <Rect
+        x={2}
+        y={2}
+        width={width - 4}
+        height={height - 4}
+        stroke="rgba(255,255,255,0.2)"
+        strokeWidth={2}
+        cornerRadius={cornerRadius - 2}
+      />
+      {/* Inner bezel - deep black */}
       <Rect
         x={borderWidth}
         y={borderWidth}
         width={width - borderWidth * 2}
         height={height - borderWidth * 2}
-        fill="#000000"
+        fill="#050505"
         cornerRadius={screenCornerRadius}
+        shadowColor="rgba(0,0,0,0.8)"
+        shadowBlur={10}
+        shadowOffset={{ x: 0, y: 2 }}
       />
-      {/* Notch */}
+      {/* Notch with subtle gradient */}
       <Rect
         x={(width - notchWidth) / 2}
-        y={borderWidth - 2}
+        y={borderWidth - 1}
         width={notchWidth}
         height={notchHeight}
-        fill="#000000"
-        cornerRadius={6}
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{ x: 0, y: notchHeight }}
+        fillLinearGradientColorStops={[0, '#1a1a1a', 1, '#0a0a0a']}
+        cornerRadius={4}
+      />
+      {/* Speaker mesh in notch */}
+      <Rect
+        x={(width - notchWidth * 0.6) / 2}
+        y={borderWidth}
+        width={notchWidth * 0.6}
+        height={2}
+        fill="#2a2a2a"
+        cornerRadius={1}
       />
       {/* Screen area - where content shows */}
       <Group
-        x={borderWidth + 3}
-        y={borderWidth + 3}
-        width={width - borderWidth * 2 - 6}
-        height={height - borderWidth * 2 - 6}
+        x={borderWidth + 4}
+        y={borderWidth + 4}
+        width={width - borderWidth * 2 - 8}
+        height={height - borderWidth * 2 - 8}
         clipFunc={(ctx) => {
-          const r = screenCornerRadius - 3
+          const r = screenCornerRadius - 4
           ctx.beginPath()
-          ctx.roundRect(0, 0, width - borderWidth * 2 - 6, height - borderWidth * 2 - 6, r)
+          ctx.roundRect(0, 0, width - borderWidth * 2 - 8, height - borderWidth * 2 - 8, r)
           ctx.closePath()
         }}
       >
         {children}
       </Group>
-      {/* Highlight edge */}
+      {/* Inner screen highlight edge */}
       <Rect
-        x={borderWidth + 3}
-        y={borderWidth + 3}
-        width={width - borderWidth * 2 - 6}
-        height={height - borderWidth * 2 - 6}
-        stroke="rgba(255,255,255,0.15)"
+        x={borderWidth + 4}
+        y={borderWidth + 4}
+        width={width - borderWidth * 2 - 8}
+        height={height - borderWidth * 2 - 8}
+        stroke="rgba(255,255,255,0.12)"
+        strokeWidth={1.5}
+        cornerRadius={screenCornerRadius - 4}
+      />
+      {/* Outer glow for depth */}
+      <Rect
+        width={width}
+        height={height}
+        stroke="rgba(255,255,255,0.08)"
         strokeWidth={1}
-        cornerRadius={screenCornerRadius - 3}
+        cornerRadius={cornerRadius}
       />
     </Group>
   )
