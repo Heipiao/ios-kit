@@ -6,7 +6,7 @@
 
 - 🤖 **AI 助手** - 对话式生成上架材料
 - ✨ **元数据生成** - App 名称、副标题、描述、关键词
-- 🖼️ **截图工厂** - HTML 渲染 + 多尺寸自动生成
+- 🖼️ **截图工厂** - 前端画布编辑 + 多尺寸导出
 - 📄 **隐私文档** - 隐私政策/用户协议生成 + 托管
 
 ## 技术栈
@@ -14,6 +14,7 @@
 **前端**
 - React 18 + Vite + TypeScript
 - Tailwind CSS + shadcn/ui
+- React + Konva（截图编辑器，规划中）
 - React Router
 - Supabase Auth
 
@@ -21,7 +22,7 @@
 - Python FastAPI
 - Supabase (PostgreSQL + Storage)
 - Anthropic Claude API
-- Playwright (截图渲染)
+- 导出授权与资产编排
 
 ## 快速开始
 
@@ -109,7 +110,7 @@ ios-kit/
 - [x] AI 助手基础对话
 - [x] Layout 框架
 - [ ] 项目管理 CRUD
-- [ ] 截图工厂 (HTML 渲染)
+- [ ] 截图工厂 (前端可编辑画布)
 - [ ] 隐私文档托管
 - [ ] 支付集成
 

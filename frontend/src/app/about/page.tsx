@@ -91,7 +91,7 @@ export default function About() {
               <TechBadge name="Supabase" description="Auth & DB" />
               <TechBadge name="Vercel" description="Hosting" />
               <TechBadge name="Anthropic" description="AI Backend" />
-              <TechBadge name="Playwright" description="Automation" />
+              <TechBadge name="Konva" description="Canvas Editor" />
             </div>
           </div>
         </section>
