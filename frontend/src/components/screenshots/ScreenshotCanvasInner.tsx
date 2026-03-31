@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useMemo, useCallback, useState } from 'react'
 import type Konva from 'konva'
-import { Circle, Group, Image as KonvaImage, Layer, Rect, Stage, Text } from 'react-konva'
-import { DEVICE_PRESETS, updateSceneElement, type SceneElement, type SceneSpec, type ScreenshotAsset } from '@/lib/screenshot-spec'
+import { Circle, Group, Image as KonvaImage, Layer, Rect, Stage, Text, Transformer, RegularPolygon } from 'react-konva'
+import { DEVICE_PRESETS, FONT_LIBRARY, updateSceneElement, deleteElement, type SceneElement, type SceneSpec, type ScreenshotAsset, type FontFamily } from '@/lib/screenshot-spec'
 
 export interface ScreenshotCanvasProps {
   scene: SceneSpec | null
@@ -16,22 +16,29 @@ export interface ScreenshotCanvasProps {
   onExportReady: (dataUrl: string) => void
 }
 
-function PhoneFrame({ width, height }: { width: number; height: number }) {
-  const cornerRadius = Math.min(width, height) * 0.08
-  const borderWidth = Math.max(4, Math.min(width, height) * 0.015)
+// Phone frame component using simple but visible styling
+function PhoneFrame({ width, height, children }: { width: number; height: number; children: React.ReactNode }) {
+  const cornerRadius = Math.min(width, height) * 0.12
+  const borderWidth = Math.max(6, Math.min(width, height) * 0.02)
   const screenCornerRadius = cornerRadius - borderWidth
+  const notchWidth = width * 0.25
+  const notchHeight = borderWidth * 1.2
 
   return (
     <Group>
+      {/* Outer frame with gradient for depth */}
       <Rect
         width={width}
         height={height}
-        fill="#1a1a1a"
+        fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+        fillLinearGradientEndPoint={{ x: width, y: height }}
+        fillLinearGradientColorStops={[0, '#2a2a2a', 0.5, '#1a1a1a', 1, '#0a0a0a']}
         cornerRadius={cornerRadius}
-        shadowColor="rgba(0,0,0,0.5)"
-        shadowBlur={20}
-        shadowOffset={{ x: 0, y: 10 }}
+        shadowColor="rgba(0,0,0,0.6)"
+        shadowBlur={30}
+        shadowOffset={{ x: 0, y: 15 }}
       />
+      {/* Inner bezel */}
       <Rect
         x={borderWidth}
         y={borderWidth}
@@ -40,15 +47,39 @@ function PhoneFrame({ width, height }: { width: number; height: number }) {
         fill="#000000"
         cornerRadius={screenCornerRadius}
       />
+      {/* Notch */}
       <Rect
-        x={borderWidth + 2}
-        y={borderWidth + 2}
-        width={width - borderWidth * 2 - 4}
-        height={height - borderWidth * 2 - 4}
-        fill="transparent"
-        cornerRadius={screenCornerRadius - 2}
-        stroke="rgba(255,255,255,0.1)"
+        x={(width - notchWidth) / 2}
+        y={borderWidth - 2}
+        width={notchWidth}
+        height={notchHeight}
+        fill="#000000"
+        cornerRadius={6}
+      />
+      {/* Screen area - where content shows */}
+      <Group
+        x={borderWidth + 3}
+        y={borderWidth + 3}
+        width={width - borderWidth * 2 - 6}
+        height={height - borderWidth * 2 - 6}
+        clipFunc={(ctx) => {
+          const r = screenCornerRadius - 3
+          ctx.beginPath()
+          ctx.roundRect(0, 0, width - borderWidth * 2 - 6, height - borderWidth * 2 - 6, r)
+          ctx.closePath()
+        }}
+      >
+        {children}
+      </Group>
+      {/* Highlight edge */}
+      <Rect
+        x={borderWidth + 3}
+        y={borderWidth + 3}
+        width={width - borderWidth * 2 - 6}
+        height={height - borderWidth * 2 - 6}
+        stroke="rgba(255,255,255,0.15)"
         strokeWidth={1}
+        cornerRadius={screenCornerRadius - 3}
       />
     </Group>
   )
@@ -96,91 +127,95 @@ function useLoadedImages(sources: Record<string, string>) {
   return images
 }
 
-// Memoized selection outline
-const SelectionOutline = ({ element }: { element: SceneElement }) => (
-  <Rect
-    x={element.x - 12}
-    y={element.y - 12}
-    width={element.width + 24}
-    height={element.height + 24}
-    stroke="#ffcc00"
-    strokeWidth={10}
-    dash={[24, 14]}
-    listening={false}
-    cornerRadius={element.kind === 'logo' ? element.width : 40}
-  />
-)
+// Resize handle component
+interface ResizeHandleProps {
+  x: number
+  y: number
+  onDragEnd: (deltaX: number, deltaY: number) => void
+  color?: string
+}
 
-// Memoized element node to prevent re-renders during drag
-const SceneElementNode = ({
+const ResizeHandle = ({ x, y, onDragEnd, color = '#ffcc00' }: ResizeHandleProps) => {
+  const handleSize = 16
+
+  return (
+    <Group
+      x={x}
+      y={y}
+      draggable
+      onDragEnd={(e) => {
+        onDragEnd(e.target.x(), e.target.y())
+        e.target.x(0)
+        e.target.y(0)
+      }}
+    >
+      <Rect
+        x={-handleSize / 2}
+        y={-handleSize / 2}
+        width={handleSize}
+        height={handleSize}
+        fill={color}
+        stroke="#000"
+        strokeWidth={2}
+      />
+      <RegularPolygon
+        sides={3}
+        radius={4}
+        fill="#000"
+        rotation={180}
+      />
+    </Group>
+  )
+}
+
+// Selected element with transformer for resize
+const SelectedElementWrapper = ({
   element,
   images,
   onSelectElement,
   onChangeScene,
   scene,
+  onResize,
 }: {
-  element: SceneElement
+  element: SceneElement & { kind: 'image' }
   images: Record<string, HTMLImageElement>
   onSelectElement: (elementId: string | null) => void
   onChangeScene: (scene: SceneSpec) => void
   scene: SceneSpec
+  onResize: (width: number, height: number) => void
 }) => {
-  if (element.kind === 'text') {
+  const groupRef = useRef<any>(null)
+  const image = images[element.assetId]
+  const showFrame = scene.showPhoneFrame
+
+  const handleResizeDragEnd = (deltaX: number, deltaY: number) => {
+    const newWidth = Math.max(100, element.width + deltaX)
+    const newHeight = Math.max(100, element.height + deltaY)
+    onResize(newWidth, newHeight)
+  }
+
+  if (showFrame) {
+    const frameWidth = element.width + 24
+    const frameHeight = element.height + 24
+
     return (
-      <Text
-        x={element.x}
-        y={element.y}
-        width={element.width}
-        height={element.height}
-        text={element.text}
-        fontSize={element.fontSize}
-        fontFamily={element.fontFamily}
-        fontStyle={element.fontWeight >= 700 ? 'bold' : 'normal'}
-        fill={element.color}
-        lineHeight={1.1}
+      <Group
+        x={element.x - 12}
+        y={element.y - 12}
         draggable
         onClick={() => onSelectElement(element.id)}
         onTap={() => onSelectElement(element.id)}
         onDragEnd={(event) => {
           onChangeScene(
             updateSceneElement(scene, element.id, {
-              x: Math.round(event.target.x()),
-              y: Math.round(event.target.y()),
+              x: Math.round(event.target.x()) + 12,
+              y: Math.round(event.target.y()) + 12,
             })
           )
         }}
-      />
-    )
-  }
-
-  if (element.kind === 'image') {
-    const image = images[element.assetId]
-    const showFrame = scene.showPhoneFrame
-
-    if (showFrame) {
-      const frameWidth = element.width + 24
-      const frameHeight = element.height + 24
-
-      return (
-        <Group
-          x={element.x - 12}
-          y={element.y - 12}
-          draggable
-          onClick={() => onSelectElement(element.id)}
-          onTap={() => onSelectElement(element.id)}
-          onDragEnd={(event) => {
-            onChangeScene(
-              updateSceneElement(scene, element.id, {
-                x: Math.round(event.target.x()) + 12,
-                y: Math.round(event.target.y()) + 12,
-              })
-            )
-          }}
-        >
-          <PhoneFrame width={frameWidth} height={frameHeight} />
+      >
+        <PhoneFrame width={frameWidth} height={frameHeight}>
           <Group
-            x={12}
-            y={12}
             width={element.width}
             height={element.height}
             clipFunc={(ctx) => {
@@ -191,82 +226,30 @@ const SceneElementNode = ({
             }}
           >
             {image ? (
-              <KonvaImage image={image} width={element.width} height={element.height} />
+              <KonvaImage
+                image={image}
+                x={(element.width - (image.width * element.height / image.height)) / 2}
+                y={0}
+                width={image.width * element.height / image.height}
+                height={element.height}
+              />
             ) : (
               <Rect width={element.width} height={element.height} fill="#d9d4c9" />
             )}
           </Group>
-        </Group>
-      )
-    }
-
-    // No frame - keep original image size, clip to container
-    return (
-      <Group
-        x={element.x}
-        y={element.y}
-        draggable
-        onClick={() => onSelectElement(element.id)}
-        onTap={() => onSelectElement(element.id)}
-        onDragEnd={(event) => {
-          onChangeScene(
-            updateSceneElement(scene, element.id, {
-              x: Math.round(event.target.x()),
-              y: Math.round(event.target.y()),
-            })
-          )
-        }}
-      >
-        {/* Background card */}
-        <Rect
-          width={element.width}
-          height={element.height}
-          fill="#ffffff"
-          cornerRadius={42}
-          shadowColor={element.shadowColor}
-          shadowBlur={44}
-          shadowOffset={{ x: 0, y: 24 }}
-          shadowOpacity={0.45}
-        />
-        {/* Clip the image to the card bounds */}
-        <Group
-          width={element.width}
-          height={element.height}
-          clipFunc={(ctx) => {
-            const r = 42
-            ctx.beginPath()
-            ctx.roundRect(0, 0, element.width, element.height, r)
-            ctx.closePath()
-          }}
-        >
-          {image ? (
-            <KonvaImage
-              image={image}
-              x={(element.width - image.width) / 2}
-              y={(element.height - image.height) / 2}
-            />
-          ) : (
-            <Rect width={element.width} height={element.height} fill="#d9d4c9" cornerRadius={42} />
-          )}
-        </Group>
-        {/* Border */}
-        <Rect
-          width={element.width}
-          height={element.height}
-          stroke="rgba(17,17,17,0.14)"
-          strokeWidth={6}
-          cornerRadius={42}
-        />
+        </PhoneFrame>
+        {/* Resize handles */}
+        <ResizeHandle x={frameWidth} y={frameHeight} onDragEnd={handleResizeDragEnd} />
       </Group>
     )
   }
 
-  const logoImage = element.assetId ? images[element.assetId] : null
-
+  // No frame version
   return (
     <Group
       x={element.x}
       y={element.y}
+      ref={groupRef}
       draggable
       onClick={() => onSelectElement(element.id)}
       onTap={() => onSelectElement(element.id)}
@@ -279,11 +262,162 @@ const SceneElementNode = ({
         )
       }}
     >
+      {/* Background card */}
+      <Rect
+        width={element.width}
+        height={element.height}
+        fill="#ffffff"
+        cornerRadius={42}
+        shadowColor={element.shadowColor}
+        shadowBlur={44}
+        shadowOffset={{ x: 0, y: 24 }}
+        shadowOpacity={0.45}
+      />
+      {/* Image with clip */}
+      <Group
+        width={element.width}
+        height={element.height}
+        clipFunc={(ctx) => {
+          const r = 42
+          ctx.beginPath()
+          ctx.roundRect(0, 0, element.width, element.height, r)
+          ctx.closePath()
+        }}
+      >
+        {image ? (
+          <KonvaImage
+            image={image}
+            x={(element.width - image.width) / 2}
+            y={(element.height - image.height) / 2}
+          />
+        ) : (
+          <Rect width={element.width} height={element.height} fill="#d9d4c9" cornerRadius={42} />
+        )}
+      </Group>
+      {/* Border */}
+      <Rect
+        width={element.width}
+        height={element.height}
+        stroke="rgba(17,17,17,0.14)"
+        strokeWidth={6}
+        cornerRadius={42}
+      />
+      {/* Resize handle */}
+      <ResizeHandle x={element.width} y={element.height} onDragEnd={handleResizeDragEnd} />
+    </Group>
+  )
+}
+
+const TextElement = ({
+  element,
+  onSelectElement,
+  onChangeScene,
+  scene,
+  onDelete,
+}: {
+  element: SceneElement & { kind: 'text' }
+  onSelectElement: (elementId: string | null) => void
+  onChangeScene: (scene: SceneSpec) => void
+  scene: SceneSpec
+  onDelete: () => void
+}) => {
+  return (
+    <Group
+      x={element.x}
+      y={element.y}
+      draggable
+      onClick={(e) => {
+        e.cancelBubble = true
+        onSelectElement(element.id)
+      }}
+      onTap={(e) => {
+        e.cancelBubble = true
+        onSelectElement(element.id)
+      }}
+      onDragEnd={(event) => {
+        onChangeScene(
+          updateSceneElement(scene, element.id, {
+            x: Math.round(event.target.x()),
+            y: Math.round(event.target.y()),
+          })
+        )
+      }}
+    >
+      <Text
+        text={element.text}
+        fontSize={element.fontSize}
+        fontFamily={element.fontFamily}
+        fontStyle={element.fontWeight >= 700 ? 'bold' : 'normal'}
+        fill={element.color}
+        lineHeight={1.1}
+        width={element.width}
+      />
+      {/* Delete button (shown on selection) */}
+      <Group
+        x={element.width + 8}
+        y={-8}
+        onClick={(e) => {
+          e.cancelBubble = true
+          onDelete()
+        }}
+        onTap={(e) => {
+          e.cancelBubble = true
+          onDelete()
+        }}
+        style={{ cursor: 'pointer' }}
+      >
+        <Rect width={20} height={20} fill="#ff4444" cornerRadius={4} />
+        <Text text="×" fontSize={18} fill="#fff" align="center" width={20} offsetY={-2} />
+      </Group>
+    </Group>
+  )
+}
+
+const LogoElement = ({
+  element,
+  images,
+  onSelectElement,
+  onChangeScene,
+  onDelete,
+  scene,
+}: {
+  element: SceneElement & { kind: 'logo' }
+  images: Record<string, HTMLImageElement>
+  onSelectElement: (elementId: string | null) => void
+  onChangeScene: (scene: SceneSpec) => void
+  onDelete: () => void
+  scene: SceneSpec
+}) => {
+  const logoImage = element.assetId ? images[element.assetId] : null
+
+  return (
+    <Group
+      x={element.x}
+      y={element.y}
+      draggable
+      onClick={(e) => {
+        e.cancelBubble = true
+        onSelectElement(element.id)
+      }}
+      onTap={(e) => {
+        e.cancelBubble = true
+        onSelectElement(element.id)
+      }}
+      onDragEnd={(event) => {
+        onChangeScene(
+          updateSceneElement(scene, element.id, {
+            x: Math.round(event.target.x()),
+            y: Math.round(event.target.y()),
+          })
+        )
+      }}
+    >
       <Circle
         radius={Math.round(element.width / 2)}
-        x={Math.round(element.width / 2)}
-        y={Math.round(element.height / 2)}
         fill={element.fill}
+        shadowColor="rgba(0,0,0,0.3)"
+        shadowBlur={10}
+        shadowOffset={{ x: 0, y: 4 }}
       />
       {logoImage ? (
         <KonvaImage
@@ -307,9 +441,40 @@ const SceneElementNode = ({
           fill={element.textColor}
         />
       )}
+      {/* Delete button */}
+      <Group
+        x={element.width + 4}
+        y={-4}
+        onClick={(e) => {
+          e.cancelBubble = true
+          onDelete()
+        }}
+        onTap={(e) => {
+          e.cancelBubble = true
+          onDelete()
+        }}
+        style={{ cursor: 'pointer' }}
+      >
+        <Rect width={16} height={16} fill="#ff4444" cornerRadius={3} />
+        <Text text="×" fontSize={14} fill="#fff" align="center" width={16} offsetY={-1} />
+      </Group>
     </Group>
   )
 }
+
+const SelectionOutline = ({ element }: { element: SceneElement }) => (
+  <Rect
+    x={element.x - 12}
+    y={element.y - 12}
+    width={element.width + 24}
+    height={element.height + 24}
+    stroke="#ffcc00"
+    strokeWidth={10}
+    dash={[24, 14]}
+    listening={false}
+    cornerRadius={element.kind === 'logo' ? element.width : 40}
+  />
+)
 
 export default function ScreenshotCanvasInner({
   scene,
@@ -328,7 +493,6 @@ export default function ScreenshotCanvasInner({
   const previewWidth = scene ? DEVICE_PRESETS[scene.deviceType].previewWidth : 320
   const previewHeight = scene ? Math.round((scene.height / scene.width) * previewWidth) : 560
 
-  // Memoize asset sources to prevent unnecessary re-renders
   const assetSources = useMemo(() => {
     const sources: Record<string, string> = {}
     for (const upload of uploads) {
@@ -351,12 +515,16 @@ export default function ScreenshotCanvasInner({
     onExportReady(stageRef.current.toDataURL({ pixelRatio: 1 }))
   }, [exportRequest, onExportReady, scene])
 
-  // Handle drag move with batch rendering for smoother performance
-  const handleElementDragEnd = useCallback((elementId: string, newX: number, newY: number) => {
-    if (layerRef.current) {
-      layerRef.current.batchDraw()
+  const handleDeleteElement = useCallback((elementId: string) => {
+    if (scene) {
+      onChangeScene(deleteElement(scene, elementId))
     }
-    onChangeScene(updateSceneElement(scene!, elementId, { x: Math.round(newX), y: Math.round(newY) }))
+  }, [scene, onChangeScene])
+
+  const handleImageResize = useCallback((elementId: string, newWidth: number, newHeight: number) => {
+    if (scene) {
+      onChangeScene(updateSceneElement(scene, elementId, { width: newWidth, height: newHeight }))
+    }
   }, [scene, onChangeScene])
 
   if (!scene) {
@@ -406,6 +574,7 @@ export default function ScreenshotCanvasInner({
               }}
             >
               <Layer ref={layerRef}>
+                {/* Background gradient */}
                 <Rect
                   width={scene.width}
                   height={scene.height}
@@ -413,6 +582,7 @@ export default function ScreenshotCanvasInner({
                   fillLinearGradientEndPoint={{ x: scene.width, y: scene.height }}
                   fillLinearGradientColorStops={[0, scene.background.from, 1, scene.background.to]}
                 />
+                {/* Bottom reflection area */}
                 <Rect
                   x={Math.round(scene.width * 0.06)}
                   y={Math.round(scene.height * 0.84)}
@@ -424,35 +594,82 @@ export default function ScreenshotCanvasInner({
                 {scene.elements.map((element) => {
                   const isSelected = selectedElementId === element.id
 
-                  if (isSelected) {
+                  if (element.kind === 'text') {
                     return (
-                      <Group key={element.id}>
-                        <SelectionOutline element={element} />
-                        <SceneElementNode
-                          element={element}
-                          images={images}
-                          onSelectElement={onSelectElement}
-                          onChangeScene={onChangeScene}
-                          scene={scene}
-                        />
-                      </Group>
+                      <TextElement
+                        key={element.id}
+                        element={element}
+                        onSelectElement={onSelectElement}
+                        onChangeScene={onChangeScene}
+                        scene={scene}
+                        onDelete={() => handleDeleteElement(element.id)}
+                      />
                     )
                   }
 
-                  return (
-                    <SceneElementNode
-                      key={element.id}
-                      element={element}
-                      images={images}
-                      onSelectElement={onSelectElement}
-                      onChangeScene={onChangeScene}
-                      scene={scene}
-                    />
-                  )
+                  if (element.kind === 'image') {
+                    if (isSelected) {
+                      return (
+                        <Group key={element.id}>
+                          <SelectedElementWrapper
+                            element={element}
+                            images={images}
+                            onSelectElement={onSelectElement}
+                            onChangeScene={onChangeScene}
+                            scene={scene}
+                            onResize={(w, h) => handleImageResize(element.id, w, h)}
+                          />
+                        </Group>
+                      )
+                    }
+                    return (
+                      <SelectedElementWrapper
+                        key={element.id}
+                        element={element}
+                        images={images}
+                        onSelectElement={onSelectElement}
+                        onChangeScene={onChangeScene}
+                        scene={scene}
+                        onResize={(w, h) => handleImageResize(element.id, w, h)}
+                      />
+                    )
+                  }
+
+                  if (element.kind === 'logo') {
+                    return (
+                      <LogoElement
+                        key={element.id}
+                        element={element}
+                        images={images}
+                        onSelectElement={onSelectElement}
+                        onChangeScene={onChangeScene}
+                        onDelete={() => handleDeleteElement(element.id)}
+                        scene={scene}
+                      />
+                    )
+                  }
+
+                  return null
                 })}
               </Layer>
             </Stage>
           </div>
+        </div>
+      </div>
+
+      {/* Font info */}
+      <div className="mt-4 p-3 bg-gray-100 border-2 border-black">
+        <p className="text-xs font-mono uppercase tracking-wider text-gray-600 mb-2">Available Fonts (Free for Commercial Use)</p>
+        <div className="flex flex-wrap gap-2">
+          {FONT_LIBRARY.map((font) => (
+            <span
+              key={font.value}
+              className="px-2 py-1 bg-white border border-black text-xs font-medium"
+              style={{ fontFamily: font.value }}
+            >
+              {font.label}
+            </span>
+          ))}
         </div>
       </div>
     </div>

@@ -1,22 +1,25 @@
 'use client'
 
 import { useEffect, startTransition, useState, useRef } from 'react'
-import { Download, ImagePlus, Layers3, Palette, Sparkles, Type, Undo2, Redo2, Upload, Plus } from 'lucide-react'
+import { Download, ImagePlus, Layers3, Palette, Sparkles, Type, Undo2, Redo2, Upload, Plus, Trash2 } from 'lucide-react'
 import { AIPanel } from '@/components/AIPanel'
 import ScreenshotCanvas from '@/components/screenshots/ScreenshotCanvas'
 import { Sidebar } from '@/components/Sidebar'
 import {
   DEVICE_PRESETS,
+  FONT_LIBRARY,
   generateSceneDeck,
   scaleSceneSpec,
   updateSceneElement,
   updateSceneBackground,
   togglePhoneFrame,
+  deleteElement,
   type SceneDeck,
   type SceneDeviceType,
   type SceneElement,
   type ScreenshotAsset,
   type SceneSpec,
+  type FontFamily,
 } from '@/lib/screenshot-spec'
 import { useUndoRedo } from '@/lib/useUndoRedo'
 
@@ -501,6 +504,12 @@ export default function ScreenshotsPage() {
     updateCurrentScene(togglePhoneFrame(currentScene, show))
   }
 
+  const handleDeleteElement = () => {
+    if (!currentScene || !selectedElement) return
+    updateCurrentScene(deleteElement(currentScene, selectedElement.id))
+    setSelectedElementId(null)
+  }
+
   const handleSelectPage = (index: number) => {
     setCurrentSceneIndex(index)
     setSelectedElementId(null)
@@ -734,11 +743,23 @@ export default function ScreenshotsPage() {
 
               {/* Inspector Section */}
               <section>
-                <div className="flex items-center gap-2 mb-3 pb-3 border-b-2 border-black">
-                  <Type className="w-4 h-4" />
-                  <h2 className="font-display text-sm uppercase tracking-wider">
-                    Inspector: {selectedElement ? selectedElement.kind.toUpperCase() : 'None'}
-                  </h2>
+                <div className="flex items-center justify-between mb-3 pb-3 border-b-2 border-black">
+                  <div className="flex items-center gap-2">
+                    <Type className="w-4 h-4" />
+                    <h2 className="font-display text-sm uppercase tracking-wider">
+                      Inspector: {selectedElement ? selectedElement.kind.toUpperCase() : 'None'}
+                    </h2>
+                  </div>
+                  {selectedElement && (
+                    <button
+                      onClick={handleDeleteElement}
+                      className="flex items-center gap-1 px-2 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors text-xs font-bold uppercase"
+                      title="Delete element"
+                    >
+                      <Trash2 className="w-3 h-3" />
+                      Delete
+                    </button>
+                  )}
                 </div>
 
                 {!selectedElement ? (
@@ -780,6 +801,25 @@ export default function ScreenshotsPage() {
                           />
                         </label>
                         <label className="block">
+                          <span className="text-[10px] font-mono uppercase text-gray-500">Font Family</span>
+                          <select
+                            value={selectedElement.fontFamily}
+                            onChange={(e) => updateSelectedElement({ fontFamily: e.target.value as FontFamily })}
+                            className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm bg-white"
+                            style={{ fontFamily: selectedElement.fontFamily }}
+                          >
+                            {FONT_LIBRARY.map((font) => (
+                              <option
+                                key={font.value}
+                                value={font.value}
+                                style={{ fontFamily: font.value }}
+                              >
+                                {font.label}
+                              </option>
+                            ))}
+                          </select>
+                        </label>
+                        <label className="block">
                           <span className="text-[10px] font-mono uppercase text-gray-500">Font Size</span>
                           <input
                             type="number"
@@ -788,31 +828,42 @@ export default function ScreenshotsPage() {
                             className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
                           />
                         </label>
-                      </>
-                    )}
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <label className="block">
-                        <span className="text-[10px] font-mono uppercase text-gray-500">Width</span>
-                        <input
-                          type="number"
-                          value={selectedElement.width}
-                          onChange={(e) => updateSelectedElement({ width: Number(e.target.value) })}
-                          className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
-                        />
-                      </label>
-                      {selectedElement.kind !== 'text' && (
                         <label className="block">
-                          <span className="text-[10px] font-mono uppercase text-gray-500">Height</span>
+                          <span className="text-[10px] font-mono uppercase text-gray-500">Width</span>
                           <input
                             type="number"
-                            value={selectedElement.height}
-                            onChange={(e) => updateSelectedElement({ height: Number(e.target.value) })}
+                            value={selectedElement.width}
+                            onChange={(e) => updateSelectedElement({ width: Number(e.target.value) })}
                             className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
                           />
                         </label>
-                      )}
-                    </div>
+                      </>
+                    )}
+
+                    {selectedElement.kind !== 'text' && (
+                      <>
+                        <div className="grid grid-cols-2 gap-2">
+                          <label className="block">
+                            <span className="text-[10px] font-mono uppercase text-gray-500">Width</span>
+                            <input
+                              type="number"
+                              value={selectedElement.width}
+                              onChange={(e) => updateSelectedElement({ width: Number(e.target.value) })}
+                              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                            />
+                          </label>
+                          <label className="block">
+                            <span className="text-[10px] font-mono uppercase text-gray-500">Height</span>
+                            <input
+                              type="number"
+                              value={selectedElement.height}
+                              onChange={(e) => updateSelectedElement({ height: Number(e.target.value) })}
+                              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                            />
+                          </label>
+                        </div>
+                      </>
+                    )}
                   </div>
                 )}
               </section>

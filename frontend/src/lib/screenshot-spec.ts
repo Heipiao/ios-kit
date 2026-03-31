@@ -1,5 +1,19 @@
 export type SceneDeviceType = 'iphone_65' | 'iphone_67' | 'ipad_129' | 'ipad_109'
 
+// Free fonts for commercial use (Google Fonts - SIL Open Font License)
+export const FONT_LIBRARY = [
+  { value: 'Anton', label: 'Anton (Bold, Display)', category: 'display' },
+  { value: 'Noto Sans SC', label: 'Noto Sans SC (Chinese)', category: 'cjk' },
+  { value: 'Roboto', label: 'Roboto (Clean, Modern)', category: 'sans' },
+  { value: 'Montserrat', label: 'Montserrat (Geometric)', category: 'sans' },
+  { value: 'Open Sans', label: 'Open Sans (Friendly)', category: 'sans' },
+  { value: 'Lato', label: 'Lato (Professional)', category: 'sans' },
+  { value: 'Playfair Display', label: 'Playfair Display (Elegant)', category: 'serif' },
+  { value: 'Source Sans Pro', label: 'Source Sans Pro (Readable)', category: 'sans' },
+] as const
+
+export type FontFamily = typeof FONT_LIBRARY[number]['value']
+
 export interface DevicePreset {
   label: string
   width: number
@@ -357,6 +371,13 @@ export function togglePhoneFrame(scene: SceneSpec, show: boolean) {
   return {
     ...scene,
     showPhoneFrame: show,
+  }
+}
+
+export function deleteElement(scene: SceneSpec, elementId: string) {
+  return {
+    ...scene,
+    elements: scene.elements.filter((element) => element.id !== elementId),
   }
 }
 
