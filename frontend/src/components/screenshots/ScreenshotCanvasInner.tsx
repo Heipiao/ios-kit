@@ -16,6 +16,47 @@ export interface ScreenshotCanvasProps {
   onExportReady: (dataUrl: string) => void
 }
 
+function PhoneFrame({ width, height }: { width: number; height: number }) {
+  const cornerRadius = Math.min(width, height) * 0.08
+  const borderWidth = Math.max(4, Math.min(width, height) * 0.015)
+  const screenCornerRadius = cornerRadius - borderWidth
+
+  return (
+    <Group>
+      {/* Outer frame */}
+      <Rect
+        width={width}
+        height={height}
+        fill="#1a1a1a"
+        cornerRadius={cornerRadius}
+        shadowColor="rgba(0,0,0,0.5)"
+        shadowBlur={20}
+        shadowOffset={{ x: 0, y: 10 }}
+      />
+      {/* Inner screen cutout */}
+      <Rect
+        x={borderWidth}
+        y={borderWidth}
+        width={width - borderWidth * 2}
+        height={height - borderWidth * 2}
+        fill="#000000"
+        cornerRadius={screenCornerRadius}
+      />
+      {/* Screen content mask area - transparent */}
+      <Rect
+        x={borderWidth + 2}
+        y={borderWidth + 2}
+        width={width - borderWidth * 2 - 4}
+        height={height - borderWidth * 2 - 4}
+        fill="transparent"
+        cornerRadius={screenCornerRadius - 2}
+        stroke="rgba(255,255,255,0.1)"
+        strokeWidth={1}
+      />
+    </Group>
+  )
+}
+
 function useLoadedImages(sources: Record<string, string>) {
   const [images, setImages] = useState<Record<string, HTMLImageElement>>({})
 
@@ -263,6 +304,50 @@ function SceneElementNode({
 
   if (element.kind === 'image') {
     const image = images[element.assetId]
+    const showFrame = scene.showPhoneFrame
+
+    if (showFrame) {
+      const frameWidth = element.width + 24
+      const frameHeight = element.height + 24
+
+      return (
+        <Group
+          x={element.x - 12}
+          y={element.y - 12}
+          draggable
+          onClick={() => onSelectElement(element.id)}
+          onTap={() => onSelectElement(element.id)}
+          onDragEnd={(event) => {
+            onChangeScene(
+              updateSceneElement(scene, element.id, {
+                x: Math.round(event.target.x()) + 12,
+                y: Math.round(event.target.y()) + 12,
+              })
+            )
+          }}
+        >
+          <PhoneFrame width={frameWidth} height={frameHeight} />
+          <Group
+            x={12}
+            y={12}
+            width={element.width}
+            height={element.height}
+            clipFunc={(ctx) => {
+              const r = Math.min(element.width, element.height) * 0.05
+              ctx.beginPath()
+              ctx.roundRect(0, 0, element.width, element.height, r)
+              ctx.closePath()
+            }}
+          >
+            {image ? (
+              <KonvaImage image={image} width={element.width} height={element.height} />
+            ) : (
+              <Rect width={element.width} height={element.height} fill="#d9d4c9" />
+            )}
+          </Group>
+        </Group>
+      )
+    }
 
     return (
       <Group

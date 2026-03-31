@@ -1,7 +1,7 @@
 'use client'
 
-import { startTransition, useState } from 'react'
-import { Download, ImagePlus, Layers3, Palette, Sparkles, Type, Upload } from 'lucide-react'
+import { useEffect, startTransition, useState } from 'react'
+import { Download, ImagePlus, Layers3, Palette, Sparkles, Type, Undo2, Redo2, Upload, ChevronLeft, ChevronRight } from 'lucide-react'
 import { AIPanel } from '@/components/AIPanel'
 import ScreenshotCanvas from '@/components/screenshots/ScreenshotCanvas'
 import { Sidebar } from '@/components/Sidebar'
@@ -10,11 +10,14 @@ import {
   generateSceneDeck,
   scaleSceneSpec,
   updateSceneElement,
+  updateSceneBackground,
+  togglePhoneFrame,
   type SceneDeck,
   type SceneDeviceType,
   type SceneElement,
   type ScreenshotAsset,
 } from '@/lib/screenshot-spec'
+import { useUndoRedo } from '@/lib/useUndoRedo'
 
 function readFileAsDataUrl(file: File) {
   return new Promise<string>((resolve, reject) => {
@@ -59,13 +62,42 @@ export default function ScreenshotsPage() {
   const [uploads, setUploads] = useState<ScreenshotAsset[]>([])
   const [logoAsset, setLogoAsset] = useState<ScreenshotAsset | null>(null)
   const [deck, setDeck] = useState<SceneDeck | null>(null)
-  const [currentSceneId, setCurrentSceneId] = useState<string | null>(null)
+  const [currentSceneIndex, setCurrentSceneIndex] = useState(0)
   const [selectedElementId, setSelectedElementId] = useState<string | null>(null)
   const [exportRequest, setExportRequest] = useState(0)
   const [errorMessage, setErrorMessage] = useState<string | null>(null)
 
-  const currentScene = deck?.scenes.find((scene) => scene.id === currentSceneId) ?? deck?.scenes[0] ?? null
+  // Undo/Redo for deck
+  const { present: deckPresent, set: setDeckWithHistory, undo, redo, canUndo, canRedo } = useUndoRedo<SceneDeck | null>(null)
+  const currentDeck = deckPresent
+
+  // Sync deck state
+  useEffect(() => {
+    if (deck && deck !== deckPresent) {
+      // Reset history when generating new draft
+      // We'll handle this by directly setting in generate function
+    }
+  }, [deck, deckPresent])
+
+  const currentScene = currentDeck?.scenes[currentSceneIndex] ?? null
   const selectedElement = currentScene?.elements.find((element) => element.id === selectedElementId) ?? null
+
+  // Keyboard shortcuts for undo/redo
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'z') {
+        e.preventDefault()
+        if (e.shiftKey) {
+          redo()
+        } else {
+          undo()
+        }
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [undo, redo])
 
   async function handleUploadFiles(event: React.ChangeEvent<HTMLInputElement>) {
     const files = Array.from(event.target.files ?? [])
@@ -118,37 +150,29 @@ export default function ScreenshotsPage() {
       })
 
       setDeck(nextDeck)
-      setCurrentSceneId(nextDeck.scenes[0]?.id ?? null)
+      setCurrentSceneIndex(0)
       setSelectedElementId(nextDeck.scenes[0]?.elements[0]?.id ?? null)
       setErrorMessage(null)
     })
   }
 
   function updateCurrentScene(nextScene: NonNullable<typeof currentScene>) {
-    setDeck((current) => {
-      if (!current) {
-        return current
-      }
+    if (!currentDeck) return
 
-      return {
-        ...current,
-        scenes: current.scenes.map((scene) => (scene.id === nextScene.id ? nextScene : scene)),
-      }
+    setDeckWithHistory({
+      ...currentDeck,
+      scenes: currentDeck.scenes.map((scene, index) => (index === currentSceneIndex ? nextScene : scene)),
     })
   }
 
   function handleDeviceTypeChange(nextType: SceneDeviceType) {
     setDeviceType(nextType)
 
-    setDeck((current) => {
-      if (!current) {
-        return current
-      }
+    if (!currentDeck) return
 
-      return {
-        ...current,
-        scenes: current.scenes.map((scene) => scaleSceneSpec(scene, nextType)),
-      }
+    setDeckWithHistory({
+      ...currentDeck,
+      scenes: currentDeck.scenes.map((scene) => scaleSceneSpec(scene, nextType)),
     })
   }
 
@@ -160,12 +184,37 @@ export default function ScreenshotsPage() {
     updateCurrentScene(updateSceneElement(currentScene, selectedElement.id, patch))
   }
 
+  function handleBackgroundChange(colors: { from: string; to: string }) {
+    if (!currentScene) return
+    updateCurrentScene(updateSceneBackground(currentScene, colors))
+  }
+
+  function handlePhoneFrameToggle(show: boolean) {
+    if (!currentScene) return
+    updateCurrentScene(togglePhoneFrame(currentScene, show))
+  }
+
   function handleExportReady(dataUrl: string) {
     const link = document.createElement('a')
-    const sceneLabel = currentScene?.story.title ?? 'scene'
+    const scene = currentDeck?.scenes[currentSceneIndex]
+    const sceneLabel = scene?.story.title ?? 'scene'
     link.href = dataUrl
     link.download = `${sanitizeFilename(appName)}-${sanitizeFilename(sceneLabel)}-${deviceType}.png`
     link.click()
+  }
+
+  function handlePreviousScene() {
+    if (currentSceneIndex > 0) {
+      setCurrentSceneIndex(currentSceneIndex - 1)
+      setSelectedElementId(null)
+    }
+  }
+
+  function handleNextScene() {
+    if (currentDeck && currentSceneIndex < currentDeck.scenes.length - 1) {
+      setCurrentSceneIndex(currentSceneIndex + 1)
+      setSelectedElementId(null)
+    }
   }
 
   return (
@@ -178,7 +227,25 @@ export default function ScreenshotsPage() {
             <p className="text-xs font-mono uppercase tracking-[0.35em] text-gray-500">Screenshot Workbench</p>
             <h1 className="text-4xl font-display font-bold uppercase tracking-wide mt-2">Design App Store Screens</h1>
           </div>
-          <div className="flex gap-3">
+          <div className="flex items-center gap-3">
+            <button
+              className="btn-brutal btn-brutal-secondary"
+              onClick={undo}
+              disabled={!canUndo}
+              title="Undo (Cmd/Ctrl+Z)"
+            >
+              <Undo2 className="w-5 h-5" />
+              Undo
+            </button>
+            <button
+              className="btn-brutal btn-brutal-secondary"
+              onClick={redo}
+              disabled={!canRedo}
+              title="Redo (Cmd/Ctrl+Shift+Z)"
+            >
+              <Redo2 className="w-5 h-5" />
+              Redo
+            </button>
             <button className="btn-brutal btn-brutal-secondary" onClick={handleGenerateDraft}>
               <Sparkles className="w-5 h-5" />
               Generate Draft
@@ -296,6 +363,59 @@ export default function ScreenshotsPage() {
           </section>
 
           <section className="min-w-0">
+            {/* Page Navigation */}
+            {currentDeck && currentDeck.scenes.length > 1 && (
+              <div className="card-brutal p-4 bg-white mb-6">
+                <div className="flex items-center justify-between">
+                  <button
+                    onClick={handlePreviousScene}
+                    disabled={currentSceneIndex === 0}
+                    className={`flex items-center gap-2 px-4 py-2 border-2 border-black transition-colors ${
+                      currentSceneIndex === 0
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-yellow-50'
+                    }`}
+                  >
+                    <ChevronLeft className="w-5 h-5" />
+                    Previous
+                  </button>
+                  <span className="font-mono text-sm uppercase tracking-wider">
+                    Page {currentSceneIndex + 1} of {currentDeck.scenes.length}
+                  </span>
+                  <button
+                    onClick={handleNextScene}
+                    disabled={currentSceneIndex === currentDeck.scenes.length - 1}
+                    className={`flex items-center gap-2 px-4 py-2 border-2 border-black transition-colors ${
+                      currentSceneIndex === currentDeck.scenes.length - 1
+                        ? 'bg-gray-100 text-gray-400 cursor-not-allowed'
+                        : 'bg-white hover:bg-yellow-50'
+                    }`}
+                  >
+                    Next
+                    <ChevronRight className="w-5 h-5" />
+                  </button>
+                </div>
+                <div className="flex gap-2 mt-3 overflow-x-auto">
+                  {currentDeck.scenes.map((scene, index) => (
+                    <button
+                      key={scene.id}
+                      onClick={() => {
+                        setCurrentSceneIndex(index)
+                        setSelectedElementId(scene.elements[0]?.id ?? null)
+                      }}
+                      className={`flex-shrink-0 px-3 py-2 border-2 text-xs font-mono uppercase tracking-wider transition-colors ${
+                        index === currentSceneIndex
+                          ? 'border-black bg-black text-white'
+                          : 'border-black bg-gray-50 hover:bg-white'
+                      }`}
+                    >
+                      Page {index + 1}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <ScreenshotCanvas
               scene={currentScene}
               uploads={uploads}
@@ -307,25 +427,25 @@ export default function ScreenshotsPage() {
               onExportReady={handleExportReady}
             />
 
-            {deck ? (
+            {currentDeck && (
               <div className="card-brutal p-5 bg-white mt-6">
                 <div className="flex items-center justify-between mb-4 pb-4 border-b-2 border-black">
                   <div>
                     <p className="text-xs font-mono uppercase tracking-[0.3em] text-gray-500">Storyboard</p>
                     <h2 className="font-display text-2xl uppercase">Generated Pages</h2>
                   </div>
-                  <p className="text-sm font-bold uppercase">{deck.brandKit.themeName}</p>
+                  <p className="text-sm font-bold uppercase">{currentDeck.brandKit.themeName}</p>
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-                  {deck.scenes.map((scene) => (
+                  {currentDeck.scenes.map((scene, index) => (
                     <button
                       key={scene.id}
                       onClick={() => {
-                        setCurrentSceneId(scene.id)
+                        setCurrentSceneIndex(index)
                         setSelectedElementId(scene.elements[0]?.id ?? null)
                       }}
                       className={`text-left border-2 p-4 transition-colors ${
-                        currentScene?.id === scene.id ? 'border-black bg-yellow-100' : 'border-black bg-gray-50 hover:bg-white'
+                        index === currentSceneIndex ? 'border-black bg-yellow-100' : 'border-black bg-gray-50 hover:bg-white'
                       }`}
                     >
                       <p className="font-display text-lg uppercase leading-none">{scene.story.title}</p>
@@ -334,10 +454,74 @@ export default function ScreenshotsPage() {
                   ))}
                 </div>
               </div>
-            ) : null}
+            )}
           </section>
 
           <section className="space-y-6">
+            <div className="card-brutal p-5 bg-white">
+              <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-black">
+                <Palette className="w-5 h-5" />
+                <div>
+                  <p className="text-xs font-mono uppercase tracking-[0.3em] text-gray-500">Appearance</p>
+                  <h2 className="font-display text-2xl uppercase">Background & Frame</h2>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div>
+                  <span className="meta-label block mb-2">Background Gradient</span>
+                  <div className="flex gap-2 items-center">
+                    <div className="flex-1">
+                      <label className="text-xs font-mono uppercase text-gray-500">From</label>
+                      <input
+                        type="color"
+                        value={currentScene?.background.from ?? '#111111'}
+                        onChange={(e) =>
+                          handleBackgroundChange({
+                            from: e.target.value,
+                            to: currentScene?.background.to ?? '#ff6b35',
+                          })
+                        }
+                        className="w-full h-10 border-2 border-black cursor-pointer"
+                      />
+                    </div>
+                    <div className="flex-1">
+                      <label className="text-xs font-mono uppercase text-gray-500">To</label>
+                      <input
+                        type="color"
+                        value={currentScene?.background.to ?? '#ff6b35'}
+                        onChange={(e) =>
+                          handleBackgroundChange({
+                            from: currentScene?.background.from ?? '#111111',
+                            to: e.target.value,
+                          })
+                        }
+                        className="w-full h-10 border-2 border-black cursor-pointer"
+                      />
+                    </div>
+                  </div>
+                  <div className="mt-2 h-8 rounded border-2 border-black" style={{
+                    background: `linear-gradient(135deg, ${currentScene?.background.from ?? '#111111'}, ${currentScene?.background.to ?? '#ff6b35'})`
+                  }} />
+                </div>
+
+                <div className="pt-4 border-t-2 border-black">
+                  <label className="flex items-center justify-between cursor-pointer">
+                    <div>
+                      <span className="meta-label">Phone Frame</span>
+                      <p className="text-xs text-gray-500 mt-1">Add device bezel around screenshots</p>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={currentScene?.showPhoneFrame ?? false}
+                      onChange={(e) => handlePhoneFrameToggle(e.target.checked)}
+                      className="w-5 h-5 border-2 border-black"
+                    />
+                  </label>
+                </div>
+              </div>
+            </div>
+
             <div className="card-brutal p-5 bg-white">
               <div className="flex items-center gap-3 mb-4 pb-4 border-b-2 border-black">
                 <Type className="w-5 h-5" />

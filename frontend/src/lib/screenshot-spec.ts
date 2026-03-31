@@ -77,6 +77,7 @@ export interface SceneSpec {
     from: string
     to: string
   }
+  showPhoneFrame: boolean
   story: StoryboardItem
   elements: SceneElement[]
 }
@@ -283,6 +284,7 @@ export function buildSceneSpec(options: {
       from: options.brandKit.palette[0],
       to: options.brandKit.palette[2],
     },
+    showPhoneFrame: false,
     story: options.story,
     elements,
   } satisfies SceneSpec
@@ -341,6 +343,20 @@ export function updateSceneElement(
         ...updater,
       } as SceneElement
     }),
+  }
+}
+
+export function updateSceneBackground(scene: SceneSpec, background: { from: string; to: string }) {
+  return {
+    ...scene,
+    background,
+  }
+}
+
+export function togglePhoneFrame(scene: SceneSpec, show: boolean) {
+  return {
+    ...scene,
+    showPhoneFrame: show,
   }
 }
 
