@@ -1158,7 +1158,59 @@ async function exportAllSlides(config: AiLayerTreeConfig) {
 
 ---
 
-## 7. 后续扩展
+## 7. 实现状态
+
+### 7.1 已完成
+
+#### 前端 (Frontend)
+- [x] 项目类型定义 (`frontend/src/lib/project-types.ts`)
+- [x] 项目 API 客户端 (`frontend/src/lib/api-projects.ts`)
+- [x] 项目列表页 (`/projects`)
+- [x] 项目创建页 (`/projects/new`)
+- [x] 项目详情页 (`/projects/[id]`)
+- [x] 截图编辑器 (`/projects/[id]/screenshots`)
+- [x] 可视化图层编辑（选中、拖拽、属性调整）
+- [x] 透明度、旋转功能
+- [x] 图层列表管理（显隐、排序、删除）
+- [x] 导出 PNG 功能
+
+#### 后端 (Backend)
+- [x] Supabase 数据库 Schema (`backend/supabase-schema.sql`)
+- [x] 项目 CRUD API (`GET/POST/PUT/DELETE /api/projects`)
+- [x] 资源上传/删除 API (`POST /api/assets/upload`, `DELETE /api/assets/{id}`)
+- [x] 截图配置保存/获取 API (`GET/POST /api/projects/{id}/screenshot-config`)
+- [x] Supabase 客户端封装 (`backend/database.py`)
+- [x] Pydantic 数据模型 (`backend/models.py`)
+
+#### 文档 (Documentation)
+- [x] 技术设计文档更新 (`docs/screenshot-factory-v2-td.md`)
+- [x] 后端 README (`backend/README.md`)
+
+### 7.2 待完成
+
+- [ ] AI 生成 LayerTree 功能 (`POST /api/projects/{id}/screenshot/generate`)
+- [ ] Supabase 存储桶配置（Storage Bucket）
+- [ ] 用户认证（Supabase Auth）
+- [ ] 元数据编辑页面 (`/projects/[id]/metadata`)
+- [ ] 隐私政策生成页面 (`/projects/[id]/privacy`)
+- [ ] Slide 页签管理（添加、删除、切换）
+- [ ] 设备边框（Frame）渲染
+- [ ] 贴纸（Sticker）功能
+
+---
+
+## 8. 风险与注意事项
+
+1. **Konva 对 SVG 支持有限**：Frame 必须预转为 PNG
+2. **screenRect 提取准确性**：需要可靠的 SVG 解析脚本
+3. **Cover 算法边界情况**：需要处理极端宽高比
+4. **大文件上传**：图片素材需要压缩/分片上传
+5. **撤销/重做**：需要维护命令历史栈（V2 可选）
+6. **多 Slide 性能**：Slide 过多时考虑虚拟滚动
+
+---
+
+## 9. 后续扩展
 
 - [ ] 撤销/重做（Command Pattern）
 - [ ] 图层分组/嵌套
