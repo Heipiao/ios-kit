@@ -409,11 +409,12 @@ function CanvasPanel({
                       width={layer.width}
                       height={layer.height}
                       fill={layer.color}
+                      opacity={layer.opacity}
+                      rotation={layer.rotation}
                     />
                   );
                 }
                 if (layer.bgType === 'gradient' && layer.gradient) {
-                  // Use Konva's linear gradient props
                   const startColor = layer.gradient.stops[0]?.color || '#667eea';
                   const endColor = layer.gradient.stops[1]?.color || '#764ba2';
                   return (
@@ -426,6 +427,8 @@ function CanvasPanel({
                       fillLinearGradientStartPoint={{ x: 0, y: 0 }}
                       fillLinearGradientEndPoint={{ x: config.exportedPngSize.w, y: config.exportedPngSize.h }}
                       fillLinearGradientColorStops={[0, startColor, 1, endColor]}
+                      opacity={layer.opacity}
+                      rotation={layer.rotation}
                     />
                   );
                 }
@@ -437,7 +440,13 @@ function CanvasPanel({
                 const uploadedImage = layer.assetRef ? loadedImages[layer.assetRef] : null;
 
                 return (
-                  <Group key={layer.id} x={layer.x} y={layer.y}>
+                  <Group
+                    key={layer.id}
+                    x={layer.x}
+                    y={layer.y}
+                    rotation={layer.rotation}
+                    opacity={layer.opacity}
+                  >
                     {/* Clipped image with corner radius */}
                     <Group
                       clipFunc={(ctx) => {
@@ -492,6 +501,8 @@ function CanvasPanel({
                     height={layer.height}
                     fontFamily={layer.fontFamily}
                     fontStyle={layer.fontWeight === 'bold' || layer.fontWeight === '700' ? 'bold' : layer.fontWeight === '600' ? '600' : 'normal'}
+                    opacity={layer.opacity}
+                    rotation={layer.rotation}
                     onClick={() => onSelectLayer(layer.id)}
                   />
                 );
@@ -506,6 +517,8 @@ function CanvasPanel({
                     y={layer.y + layer.height / 2}
                     radius={Math.min(layer.width, layer.height) / 2}
                     fill="#fbbf24"
+                    opacity={layer.opacity}
+                    rotation={layer.rotation}
                     onClick={() => onSelectLayer(layer.id)}
                   />
                 );
