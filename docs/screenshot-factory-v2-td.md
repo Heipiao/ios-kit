@@ -6,7 +6,7 @@
 
 将现有「语义 Config → 模板引擎展开」的截图生成流程升级为 **端到端 LayerTree 流水线**：
 
-- 用户用一句话描述需求并上传素材
+- 用户在创建项目时上传素材（截图、Logo 等）
 - 大模型直接生成 `AiLayerTreeConfig`（每页一张 LayerTree）
 - 前端提供可视化编辑器支持用户微调
 - 导出符合 App Store 要求的截图
@@ -19,11 +19,134 @@
 | 模板引擎展开渲染 | Konva 直接按 LayerTree 渲染 |
 | 不可编辑，AI 生成即最终结果 | 可视化编辑器，AI 生成后可微调 |
 | HTML + Playwright 截图 | Konva 离屏渲染导出 PNG |
-| 无状态，不保留中间结果 | 双版本存储（AI 原始 + 用户编辑后） |
+| 无状态，不保留中间结果 | 项目级持久化存储（AI 原始 + 用户编辑后） |
+| 在截图页面内上传素材 | 创建项目时统一上传，多处复用 |
+
+---
+
+## 1.3 系统架构
+
+### 1.3.1 页面结构
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                      页面架构                                │
+├─────────────────────────────────────────────────────────────┤
+│                                                             │
+│  /dashboard              → 项目列表（所有已创建的项目）        │
+│                                                             │
+│  /projects/new           → 创建新项目                        │
+│  ├─ 填写基本信息（App Name, Description）                   │
+│  ├─ 上传截图（1-10 张）                                      │
+│  ├─ 上传 Logo（可选）                                        │
+│  └─ 选择目标设备类型                                        │
+│                                                             │
+│  /projects/[id]          → 项目详情                          │
+│  ├─ 基本信息展示                                             │
+│  ├─ 已上传的素材列表                                         │
+│  └─ 进入各编辑模块                                           │
+│                                                             │
+│  /projects/[id]/screenshots  → 截图编辑器                    │
+│  /projects/[id]/metadata     → App Store 元数据编辑           │
+│  /projects/[id]/privacy      → 隐私政策生成                  │
+│                                                             │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1.3.2 数据流
+
+```
+创建项目时：
+┌─────────────────────────────────────────────────────────────┐
+│  Project (创建时)                                           │
+│  ├── name: string                                           │
+│  ├── description: string                                    │
+│  ├── deviceType: string                                     │
+│  ├── screenshots: Asset[]  ← 上传的截图（存到 Supabase）    │
+│  └── logo: Asset?          ← 可选 Logo                       │
+└─────────────────────────────────────────────────────────────┘
+                            ↓ 保存到 Supabase
+┌─────────────────────────────────────────────────────────────┐
+│  ScreenshotConfig (编辑时)                                  │
+│  ├── projectId: string                                      │
+│  ├── aiConfig: AiLayerTreeConfig  ← AI 生成的原始配置        │
+│  ├── editedConfig: AiLayerTreeConfig ← 用户编辑后的配置     │
+│  └── exportedPngUrls: string[]    ← 导出的 PNG 链接          │
+└─────────────────────────────────────────────────────────────┘
+```
+
+### 1.3.3 资源复用
+
+```
+┌─────────────────────────────────────────────────────────────┐
+│                    资源库（Assets）                          │
+│                                                             │
+│  创建项目时上传的素材 → 存到 Supabase Storage                │
+│  ├── screenshots/proj-abc/screenshot-1.png                 │
+│  ├── screenshots/proj-abc/screenshot-2.png                 │
+│  └── logos/proj-abc/logo.png                               │
+└─────────────────────────────────────────────────────────────┘
+                          ↓
+┌─────────────────────────────────────────────────────────────┐
+│                   各个编辑模块复用资源                        │
+│                                                             │
+│  截图编辑器  ← 读取已上传的截图 → 生成 LayerTree              │
+│  元数据生成  ← 读取 App Name/Description → 生成文案          │
+│  隐私政策    ← 读取项目信息 → 生成政策文档                   │
+└─────────────────────────────────────────────────────────────┘
+```
 
 ---
 
 ## 2. 数据结构设计
+
+### 2.1 项目与资源（Projects & Assets）
+
+#### Project（项目）
+
+```typescript
+interface Project {
+  id: string;           // 项目唯一 ID
+  name: string;         // App 名称
+  description: string;  // App 描述
+  deviceType: string;   // 设备类型，如 "iphone_67"
+  createdAt: string;    // 创建时间
+  updatedAt: string;    // 最后更新时间
+}
+```
+
+#### Asset（资源）
+
+```typescript
+interface Asset {
+  id: string;           // 资源唯一 ID
+  projectId: string;    // 所属项目 ID
+  type: 'screenshot' | 'logo' | 'other';
+  storageUrl: string;   // Supabase Storage URL
+  filename: string;     // 原始文件名
+  width?: number;       // 图片宽度（可选）
+  height?: number;      // 图片高度（可选）
+  createdAt: string;    // 创建时间
+}
+```
+
+#### ScreenshotConfig（截图配置）
+
+```typescript
+interface ScreenshotConfig {
+  id: string;                    // 配置 ID
+  projectId: string;             // 所属项目 ID
+  version: 'ai_original' | 'user_edited';  // 配置版本
+  config: AiLayerTreeConfig;     // LayerTree 配置（JSON）
+  exportedPngUrls?: string[];    // 导出的 PNG URL 列表
+  createdAt: string;             // 创建时间
+  updatedAt: string;             // 最后更新时间
+}
+```
+
+### 2.2 LayerTree 配置
+
+### 2.2.1 顶层配置
 
 ### 2.1 顶层配置
 
@@ -299,7 +422,101 @@ const EXPORT_PRESETS: ExportPreset[] = [
 
 ### 3.3 API 设计
 
-#### 3.3.1 AI 生成 LayerTree
+#### 3.3.1 项目相关 API
+
+**创建项目**
+```
+POST /api/projects
+
+Request:
+{
+  "name": string,           // App 名称
+  "description": string,    // App 描述
+  "deviceType": string,     // 设备类型
+  "screenshotIds": string[], // 截图 Asset ID 列表
+  "logoId"?: string         // Logo Asset ID（可选）
+}
+
+Response:
+{
+  "project": Project,
+  "assets": Asset[]
+}
+```
+
+**获取项目列表**
+```
+GET /api/projects
+
+Response:
+{
+  "projects": Project[]
+}
+```
+
+**获取项目详情**
+```
+GET /api/projects/:id
+
+Response:
+{
+  "project": Project,
+  "assets": Asset[],
+  "screenshotConfig"?: {
+    "aiRaw": AiLayerTreeConfig,
+    "userEdited": AiLayerTreeConfig,
+    "exportedPngs": string[]
+  }
+}
+```
+
+**更新项目**
+```
+PUT /api/projects/:id
+
+Request:
+{
+  "name"?: string,
+  "description"?: string,
+  "deviceType"?: string
+}
+
+Response: { "project": Project }
+```
+
+**删除项目**
+```
+DELETE /api/projects/:id
+
+Response: { "success": true }
+```
+
+#### 3.3.2 资源相关 API
+
+**上传资源**
+```
+POST /api/assets/upload
+
+Request: multipart/form-data
+- file: File
+- type: 'screenshot' | 'logo'
+- projectId?: string  // 如果已关联项目
+
+Response:
+{
+  "asset": Asset,
+  "storageUrl": string
+}
+```
+
+**删除资源**
+```
+DELETE /api/assets/:id
+
+Response: { "success": true }
+```
+
+#### 3.3.3 AI 生成 LayerTree
 
 ```
 POST /api/screenshot/generate
@@ -548,34 +765,30 @@ CREATE TABLE screenshot_assets (
 
 ## 4. 前端设计
 
-### 4.1 系统架构
+### 4.1 页面结构
 
 ```
 ┌─────────────────────────────────────────────────────────────┐
-│                      前端编辑器                              │
+│                      页面架构                                │
 ├─────────────────────────────────────────────────────────────┤
-│  ┌───────────────────┐  ┌────────────────────────────────┐ │
-│  │                   │  │  顶部工具栏                     │ │
-│  │   Konva 画布      │  │  - 尺寸选择 (iphone_65, ...)   │ │
-│  │   (左)            │  │  - Frame 选择器                 │ │
-│  │                   │  │  - 导出按钮                     │ │
-│  │   - 渲染 LayerTree│  ├────────────────────────────────┤ │
-│  │   - 拖拽调整      │  │  右侧面板                       │ │
-│  │   - 框选          │  │  ┌──────────────────────────┐  │ │
-│  │                   │  │  │  图层列表                │  │ │
-│  │   - 页签切换      │  │  │  - 图层名 + 缩略图       │  │ │
-│  │                   │  │  │  - 显隐开关              │  │ │
-│  └───────────────────┘  │  │  - 删除                  │  │ │
-│                         │  │  - 上移/下移             │  │ │
-│  底部：Slide 页签栏      │  │  └──────────────────────────┘  │ │
-│  - 添加页               │  │  ┌──────────────────────────┐  │ │
-│  - 页签切换             │  │  │  属性面板                │  │ │
-│  - 页签删除             │  │  │  (根据选中类型动态渲染)  │  │ │
-│                         │  │  │  - x, y, width, height  │  │ │
-│                         │  │  │  - 颜色/字体/文案       │  │ │
-│                         │  │  │  - 旋转/透明度          │  │ │
-│                         │  │  └──────────────────────────┘  │ │
-│                         └────────────────────────────────┘ │
+│                                                             │
+│  /dashboard              → 项目列表（所有已创建的项目）        │
+│                                                             │
+│  /projects/new           → 创建新项目                        │
+│  ├─ 填写基本信息（App Name, Description）                   │
+│  ├─ 上传截图（1-10 张）                                      │
+│  ├─ 上传 Logo（可选）                                        │
+│  └─ 选择目标设备类型                                        │
+│                                                             │
+│  /projects/[id]          → 项目详情                          │
+│  ├─ 基本信息展示                                             │
+│  ├─ 已上传的素材列表                                         │
+│  └─ 进入各编辑模块                                           │
+│                                                             │
+│  /projects/[id]/screenshots  → 截图编辑器                    │
+│  /projects/[id]/metadata     → App Store 元数据编辑           │
+│  /projects/[id]/privacy      → 隐私政策生成                  │
+│                                                             │
 └─────────────────────────────────────────────────────────────┘
 ```
 
@@ -583,33 +796,59 @@ CREATE TABLE screenshot_assets (
 
 ```
 frontend/src/
+├── app/
+│   ├── dashboard/
+│   │   └── page.tsx              # 项目列表页
+│   ├── projects/
+│   │   ├── new/
+│   │   │   └── page.tsx          # 创建新项目
+│   │   ├── [id]/
+│   │   │   ├── page.tsx          # 项目详情页
+│   │   │   ├── screenshots/
+│   │   │   │   └── page.tsx      # 截图编辑器
+│   │   │   ├── metadata/
+│   │   │   │   └── page.tsx      # 元数据编辑
+│   │   │   └── privacy/
+│   │   │       └── page.tsx      # 隐私政策生成
+│   │   └── page.tsx              # 重定向到 dashboard
+│   └── ...
 ├── components/
+│   ├── projects/
+│   │   ├── ProjectList.tsx       # 项目列表组件
+│   │   ├── ProjectForm.tsx       # 项目创建表单
+│   │   └── ProjectCard.tsx       # 项目卡片
 │   ├── screenshot-editor/
-│   │   ├── EditorLayout.tsx       # 主布局
-│   │   ├── CanvasPanel.tsx        # Konva 画布
-│   │   ├── LayerList.tsx          # 图层列表
-│   │   ├── PropertyPanel.tsx      # 属性面板
-│   │   ├── SlideTabs.tsx          # Slide 页签栏
-│   │   └── Toolbar.tsx            # 顶部工具栏
+│   │   ├── EditorLayout.tsx      # 主布局
+│   │   ├── CanvasPanel.tsx       # Konva 画布
+│   │   ├── LayerList.tsx         # 图层列表
+│   │   ├── PropertyPanel.tsx     # 属性面板
+│   │   ├── SlideTabs.tsx         # Slide 页签栏
+│   │   └── Toolbar.tsx           # 顶部工具栏
 │   └── konva/
-│       ├── KonvaStage.tsx         # Konva 容器
-│       ├── LayerRenderer.tsx      # 图层渲染器
-│       ├── BackgroundLayer.tsx    # 背景层渲染
-│       ├── ImageLayer.tsx         # 图片层渲染
-│       ├── TextLayer.tsx          # 文字层渲染
-│       └── StickerLayer.tsx       # 贴纸层渲染
+│       ├── KonvaStage.tsx        # Konva 容器
+│       ├── LayerRenderer.tsx     # 图层渲染器
+│       ├── BackgroundLayer.tsx   # 背景层渲染
+│       ├── ImageLayer.tsx        # 图片层渲染
+│       ├── TextLayer.tsx         # 文字层渲染
+│       └── StickerLayer.tsx      # 贴纸层渲染
 ├── hooks/
-│   ├── useLayerTree.ts            # LayerTree 状态管理
-│   ├── useSelection.ts            # 选中状态管理
-│   └── useExport.ts               # 导出逻辑
-├── types/
-│   └── layer-tree.ts              # AiLayerTreeConfig 类型定义
-├── utils/
-│   ├── frame-registry.ts          # Frame 配置表
-│   ├── layer-ops.ts               # 图层操作（上移/下移/删除）
-│   └── export.ts                  # PNG 导出工具
-└── api/
-    └── screenshot.ts              # 后端 API 调用
+│   ├── useProject.ts             # 项目相关操作
+│   ├── useLayerTree.ts           # LayerTree 状态管理
+│   ├── useSelection.ts           # 选中状态管理
+│   └── useExport.ts              # 导出逻辑
+├── lib/
+│   ├── types/
+│   │   ├── project.ts            # Project, Asset 类型
+│   │   └── layer-tree.ts         # AiLayerTreeConfig 类型
+│   ├── api/
+│   │   ├── projects.ts           # 项目 API 调用
+│   │   ├── assets.ts             # 资源 API 调用
+│   │   └── screenshot.ts         # 截图 API 调用
+│   └── utils/
+│       ├── frame-registry.ts     # Frame 配置表
+│       ├── layer-ops.ts          # 图层操作
+│       └── export.ts             # PNG 导出工具
+└── ...
 ```
 
 ### 4.3 Konva 渲染引擎
