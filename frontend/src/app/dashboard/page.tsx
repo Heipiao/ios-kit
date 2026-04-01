@@ -1,20 +1,57 @@
 'use client'
 
-import { Plus, Clock } from 'lucide-react'
-import { Sidebar } from '@/components/Sidebar'
+import { useState, useEffect } from 'react'
+import { useRouter } from 'next/navigation'
+import { Plus, Clock, MoreVertical, Trash2, Smartphone, Edit3 } from 'lucide-react'
 import { AIPanel } from '@/components/AIPanel'
-import { useState } from 'react'
+import { getProjects, deleteProject, type Project } from '@/lib/api-projects'
 
 export default function Dashboard() {
+  const router = useRouter()
   const [isAIPanelOpen, setIsAIPanelOpen] = useState(false)
-  const projects = [
-    { id: 1, name: 'Fitness App', updated: '2 hours ago', progress: 60 },
-    { id: 2, name: 'Notes App', updated: 'Yesterday', progress: 30 },
-  ]
+  const [projects, setProjects] = useState<Project[]>([])
+  const [loading, setLoading] = useState(true)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
+
+  useEffect(() => {
+    loadProjects()
+  }, [])
+
+  async function loadProjects() {
+    try {
+      setLoading(true)
+      const data = await getProjects()
+      setProjects(data)
+    } catch (err) {
+      console.error('Failed to load projects:', err)
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  async function handleDelete(id: string) {
+    if (!confirm('Delete this project? This cannot be undone.')) return
+    try {
+      await deleteProject(id)
+      setProjects(projects.filter(p => p.id !== id))
+      setOpenMenu(null)
+    } catch (err) {
+      alert('Failed to delete project')
+      console.error(err)
+    }
+  }
+
+  const deviceLabels: Record<string, string> = {
+    iphone_65: 'iPhone 6.5"',
+    iphone_67: 'iPhone 6.7"',
+    iphone_55: 'iPhone 5.5"',
+    ipad_129: 'iPad 12.9"',
+    ipad_11: 'iPad 11"',
+    ipad_109: 'iPad 10.9"',
+  }
 
   return (
     <div className="flex h-screen bg-gray-50 overflow-hidden">
-      <Sidebar />
       <main className="flex-1 overflow-auto p-6 lg:p-10">
         {/* Header */}
         <div className="flex items-center justify-between mb-8 pb-6 border-b-2 border-black">
@@ -22,7 +59,10 @@ export default function Dashboard() {
             <h1 className="text-3xl lg:text-4xl font-display font-bold uppercase tracking-wider">My Projects</h1>
             <p className="text-xs font-mono text-gray-500 mt-1 uppercase tracking-widest">Project Dashboard</p>
           </div>
-          <button className="btn-brutal flex items-center gap-2">
+          <button
+            onClick={() => router.push('/projects/new')}
+            className="btn-brutal flex items-center gap-2"
+          >
             <Plus className="w-5 h-5" />
             <span className="hidden sm:inline">New Project</span>
           </button>
@@ -30,71 +70,118 @@ export default function Dashboard() {
 
         {/* Projects grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {projects.map((project) => (
-            <div
-              key={project.id}
-              className="card-brutal p-6 cursor-pointer group"
-            >
-              <div className="flex items-start justify-between mb-4">
-                <div className="w-14 h-14 border-2 border-black bg-yellow-400 flex items-center justify-center" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
-                  <span className="text-2xl">📱</span>
-                </div>
-                <Clock className="w-5 h-5 text-gray-400" />
-              </div>
-              <h3 className="font-display font-bold text-xl uppercase mb-1">{project.name}</h3>
-              <p className="text-xs font-mono text-gray-500 mb-4 uppercase">Updated {project.updated}</p>
-              <div className="flex items-center gap-3">
-                <div className="flex-1 h-3 bg-gray-200 border border-black overflow-hidden">
-                  <div
-                    className="h-full bg-black transition-all duration-300 group-hover:bg-red-500"
-                    style={{ width: `${project.progress}%` }}
-                  />
-                </div>
-                <span className="text-sm font-bold font-mono">{project.progress}%</span>
+          {loading ? (
+            <div className="col-span-full flex items-center justify-center py-20">
+              <div className="text-center">
+                <div className="w-12 h-12 border-4 border-black border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+                <p className="text-sm font-mono uppercase tracking-wider">Loading projects...</p>
               </div>
             </div>
-          ))}
+          ) : projects.length === 0 ? (
+            <div className="col-span-full flex items-center justify-center py-20">
+              <div className="text-center">
+                <Smartphone className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-sm font-mono uppercase tracking-wider text-gray-500">No projects yet</p>
+                <button
+                  onClick={() => router.push('/projects/new')}
+                  className="mt-4 px-6 py-3 border-2 border-black bg-black text-white hover:bg-red-500 transition-colors font-display font-bold uppercase tracking-wider"
+                >
+                  Create Your First Project
+                </button>
+              </div>
+            </div>
+          ) : (
+            projects.map((project) => (
+              <div
+                key={project.id}
+                className="card-brutal p-6 group relative"
+              >
+                {/* Three dots menu */}
+                <div className="absolute top-4 right-4">
+                  <button
+                    onClick={() => setOpenMenu(openMenu === project.id ? null : project.id)}
+                    className="p-1 hover:bg-gray-100 border border-transparent hover:border-black"
+                  >
+                    <MoreVertical className="w-4 h-4" />
+                  </button>
+
+                  {openMenu === project.id && (
+                    <>
+                      <div
+                        className="fixed inset-0 z-10"
+                        onClick={() => setOpenMenu(null)}
+                      />
+                      <div className="absolute right-0 top-8 w-48 bg-white border-2 border-black shadow-lg z-20">
+                        <button
+                          onClick={() => {
+                            router.push(`/projects/${project.id}`)
+                            setOpenMenu(null)
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-yellow-50 border-b border-black text-left"
+                        >
+                          <Smartphone className="w-4 h-4" />
+                          <span className="text-sm font-bold uppercase">View Project</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            router.push(`/projects/${project.id}/screenshots`)
+                            setOpenMenu(null)
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-yellow-50 border-b border-black text-left"
+                        >
+                          <Edit3 className="w-4 h-4" />
+                          <span className="text-sm font-bold uppercase">Edit Screenshots</span>
+                        </button>
+                        <button
+                          onClick={() => {
+                            handleDelete(project.id)
+                          }}
+                          className="w-full flex items-center gap-2 px-4 py-2 hover:bg-red-50 text-red-600 text-left"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          <span className="text-sm font-bold uppercase">Delete</span>
+                        </button>
+                      </div>
+                    </>
+                  )}
+                </div>
+
+                <div
+                  className="cursor-pointer"
+                  onClick={() => router.push(`/projects/${project.id}`)}
+                >
+                  <div className="flex items-start justify-between mb-4">
+                    <div className="w-14 h-14 border-2 border-black bg-yellow-400 flex items-center justify-center" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
+                      <span className="text-2xl">📱</span>
+                    </div>
+                    <Clock className="w-5 h-5 text-gray-400" />
+                  </div>
+                  <h3 className="font-display font-bold text-xl uppercase mb-1">{project.name}</h3>
+                  <p className="text-xs font-mono text-gray-500 mb-4 uppercase">
+                    {deviceLabels[project.deviceType] || project.deviceType}
+                  </p>
+                  <p className="text-xs font-mono text-gray-500 mb-4 uppercase">
+                    Updated {new Date(project.updatedAt).toLocaleDateString()}
+                  </p>
+                  <div className="flex items-center gap-2 text-xs font-mono uppercase text-gray-400">
+                    <span className="px-2 py-1 border border-black bg-gray-50">Click card to view details</span>
+                  </div>
+                </div>
+              </div>
+            ))
+          )}
 
           {/* New project card */}
-          <div className="border-2 border-dashed border-black p-6 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-yellow-50 transition-colors min-h-[200px]">
+          <div
+            onClick={() => router.push('/projects/new')}
+            className="border-2 border-dashed border-black p-6 flex flex-col items-center justify-center cursor-pointer hover:border-black hover:bg-yellow-50 transition-colors min-h-[200px]"
+          >
             <div className="w-14 h-14 border-2 border-black bg-gray-200 flex items-center justify-center mb-4">
               <Plus className="w-8 h-8 text-gray-500" />
             </div>
             <span className="font-display font-bold text-lg uppercase">Create New Project</span>
             <span className="text-xs font-mono text-gray-500 mt-1 uppercase">Start Fresh</span>
           </div>
-        </div>
-
-        {/* Quick start */}
-        <div className="mt-8 card-brutal p-6">
-          <div className="flex items-center gap-3 mb-4 pb-3 border-b-2 border-black">
-            <span className="text-2xl">💡</span>
-            <h2 className="font-display font-bold text-xl uppercase">Quick Start</h2>
-            <span className="ml-auto text-xs font-mono uppercase tracking-wider text-gray-500">Get Started</span>
-          </div>
-          <ul className="grid grid-cols-1 md:grid-cols-3 gap-3">
-            <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
-              <span className="w-4 h-4 bg-black flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm uppercase">Create Project</p>
-                <p className="text-xs text-gray-500 font-mono mt-1">Start a new iOS project</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
-              <span className="w-4 h-4 bg-teal-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm uppercase">AI Generate</p>
-                <p className="text-xs text-gray-500 font-mono mt-1">Generate app store assets</p>
-              </div>
-            </li>
-            <li className="flex items-start gap-3 p-3 bg-gray-50 border border-black">
-              <span className="w-4 h-4 bg-red-400 flex-shrink-0 mt-0.5" />
-              <div>
-                <p className="font-bold text-sm uppercase">Screenshots</p>
-                <p className="text-xs text-gray-500 font-mono mt-1">Multi-size screenshot generator</p>
-              </div>
-            </li>
-          </ul>
         </div>
 
         {/* Decorative footer */}
