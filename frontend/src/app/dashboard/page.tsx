@@ -12,6 +12,7 @@ export default function Dashboard() {
   const [projects, setProjects] = useState<Project[]>([])
   const [loading, setLoading] = useState(true)
   const [openMenu, setOpenMenu] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     loadProjects()
@@ -44,30 +45,59 @@ export default function Dashboard() {
   async function handleCreateSampleProject() {
     try {
       setLoading(true)
+      setError(null)
 
-      // Create sample screenshot using a placeholder image
-      const sampleImageUrls = [
-        'https://picsum.photos/seed/app1/400/800',
-        'https://picsum.photos/seed/app2/400/800',
-        'https://picsum.photos/seed/app3/400/800',
-      ]
+      // First check if backend is available
+      try {
+        const healthCheck = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:8000'}/health`)
+        if (!healthCheck.ok) {
+          throw new Error('Backend server is not responding')
+        }
+      } catch (err) {
+        alert('Cannot connect to backend server. Please make sure it is running at http://localhost:8000')
+        setLoading(false)
+        return
+      }
 
+      // Create sample screenshots using canvas
+      const colors = ['#667eea', '#f093fb', '#4facfe']
       const screenshotIds: string[] = []
 
-      for (const url of sampleImageUrls) {
+      for (let i = 0; i < 3; i++) {
         try {
-          const response = await fetch(url)
+          const canvas = document.createElement('canvas')
+          canvas.width = 400
+          canvas.height = 800
+          const ctx = canvas.getContext('2d')
+          if (!ctx) continue
+
+          // Draw gradient background
+          const grd = ctx.createLinearGradient(0, 0, 0, 800)
+          grd.addColorStop(0, colors[i])
+          grd.addColorStop(1, i === 0 ? '#764ba2' : i === 1 ? '#f5576c' : '#00f2fe')
+          ctx.fillStyle = grd
+          ctx.fillRect(0, 0, 400, 800)
+
+          // Add screen number
+          ctx.fillStyle = '#ffffff'
+          ctx.font = 'bold 48px sans-serif'
+          ctx.textAlign = 'center'
+          ctx.fillText(`Screen ${i + 1}`, 200, 400)
+
+          const dataUrl = canvas.toDataURL('image/png')
+          const response = await fetch(dataUrl)
           const blob = await response.blob()
-          const file = new File([blob], 'sample-screenshot.png', { type: 'image/png' })
+          const file = new File([blob], `sample-screen-${i + 1}.png`, { type: 'image/png' })
           const result = await uploadAsset(file, 'screenshot')
           screenshotIds.push(result.asset.id)
         } catch (err) {
           console.error('Failed to upload sample image:', err)
+          setError('Failed to upload sample image')
         }
       }
 
       if (screenshotIds.length === 0) {
-        alert('Failed to create sample project')
+        alert('Failed to create sample project. Please check if Supabase is configured.')
         setLoading(false)
         return
       }
@@ -81,8 +111,9 @@ export default function Dashboard() {
 
       router.push(`/projects/${result.project.id}`)
     } catch (err) {
-      alert('Failed to create sample project')
+      alert('Failed to create sample project: ' + (err as Error).message)
       console.error(err)
+      setError((err as Error).message)
       setLoading(false)
     }
   }
