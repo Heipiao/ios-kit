@@ -2,9 +2,9 @@
 
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
-import { Plus, Clock, MoreVertical, Trash2, Smartphone, Edit3 } from 'lucide-react'
+import { Plus, Clock, MoreVertical, Trash2, Smartphone, Edit3, Sparkles } from 'lucide-react'
 import { AIPanel } from '@/components/AIPanel'
-import { getProjects, deleteProject, type Project } from '@/lib/api-projects'
+import { getProjects, deleteProject, createProject, uploadAsset, type Project } from '@/lib/api-projects'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -38,6 +38,52 @@ export default function Dashboard() {
     } catch (err) {
       alert('Failed to delete project')
       console.error(err)
+    }
+  }
+
+  async function handleCreateSampleProject() {
+    try {
+      setLoading(true)
+
+      // Create sample screenshot using a placeholder image
+      const sampleImageUrls = [
+        'https://picsum.photos/seed/app1/400/800',
+        'https://picsum.photos/seed/app2/400/800',
+        'https://picsum.photos/seed/app3/400/800',
+      ]
+
+      const screenshotIds: string[] = []
+
+      for (const url of sampleImageUrls) {
+        try {
+          const response = await fetch(url)
+          const blob = await response.blob()
+          const file = new File([blob], 'sample-screenshot.png', { type: 'image/png' })
+          const result = await uploadAsset(file, 'screenshot')
+          screenshotIds.push(result.asset.id)
+        } catch (err) {
+          console.error('Failed to upload sample image:', err)
+        }
+      }
+
+      if (screenshotIds.length === 0) {
+        alert('Failed to create sample project')
+        setLoading(false)
+        return
+      }
+
+      const result = await createProject({
+        name: 'Sample Fitness App',
+        description: 'A demo project showcasing iOS Kit features',
+        deviceType: 'iphone_67',
+        screenshotIds,
+      })
+
+      router.push(`/projects/${result.project.id}`)
+    } catch (err) {
+      alert('Failed to create sample project')
+      console.error(err)
+      setLoading(false)
     }
   }
 
@@ -82,12 +128,22 @@ export default function Dashboard() {
               <div className="text-center">
                 <Smartphone className="w-16 h-16 mx-auto mb-4 text-gray-300" />
                 <p className="text-sm font-mono uppercase tracking-wider text-gray-500">No projects yet</p>
-                <button
-                  onClick={() => router.push('/projects/new')}
-                  className="mt-4 px-6 py-3 border-2 border-black bg-black text-white hover:bg-red-500 transition-colors font-display font-bold uppercase tracking-wider"
-                >
-                  Create Your First Project
-                </button>
+                <div className="mt-4 flex items-center justify-center gap-3">
+                  <button
+                    onClick={() => router.push('/projects/new')}
+                    className="px-6 py-3 border-2 border-black bg-black text-white hover:bg-red-500 transition-colors font-display font-bold uppercase tracking-wider"
+                  >
+                    Create New Project
+                  </button>
+                  <button
+                    onClick={handleCreateSampleProject}
+                    disabled={loading}
+                    className="px-6 py-3 border-2 border-black bg-yellow-400 hover:bg-yellow-500 transition-colors font-display font-bold uppercase tracking-wider disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
+                  >
+                    <Sparkles className="w-4 h-4" />
+                    Try Sample Project
+                  </button>
+                </div>
               </div>
             </div>
           ) : (
@@ -170,6 +226,18 @@ export default function Dashboard() {
               </div>
             ))
           )}
+
+          {/* Sample project card */}
+          <div
+            onClick={handleCreateSampleProject}
+            className="border-2 border-black bg-gradient-to-br from-yellow-400 to-orange-400 p-6 flex flex-col items-center justify-center cursor-pointer hover:from-yellow-500 hover:to-orange-500 transition-colors min-h-[200px]"
+          >
+            <div className="w-14 h-14 border-2 border-black bg-white flex items-center justify-center mb-4">
+              <Sparkles className="w-8 h-8 text-yellow-500" />
+            </div>
+            <span className="font-display font-bold text-lg uppercase">Try Sample Project</span>
+            <span className="text-xs font-mono text-gray-700 mt-1 uppercase">See it in action</span>
+          </div>
 
           {/* New project card */}
           <div
