@@ -1,10 +1,10 @@
 "use client";
 
 import React, { useState, useCallback, useRef, useEffect } from "react";
-import { Download, ImagePlus, Layers3, Palette, Sparkles, Undo2, Redo2, Upload, Plus, Trash2, X, Save, Wand2 } from "lucide-react";
-import { AiLayerTreeConfig, Layer } from "@/lib/layer-tree-types";
-import { MOCK_LAYER_TREE_CONFIG, FRAME_REGISTRY, generateId } from "@/lib/layer-tree-mock";
-import { Stage, Layer as KonvaLayer, Rect, Text, Circle, Group } from "react-konva";
+import { Download, ImagePlus, Layers3, Palette, Sparkles, Undo2, Redo2, Upload, Plus, Trash2, X, Save, Wand2, Eye, EyeOff, ChevronUp, ChevronDown } from "lucide-react";
+import { AiLayerTreeConfig, Layer, TextLayer } from "@/lib/layer-tree-types";
+import { MOCK_LAYER_TREE_CONFIG, FRAME_REGISTRY, generateId, createDefaultLayer } from "@/lib/layer-tree-mock";
+import { Stage, Layer as KonvaLayer, Rect, Text, Circle, Group, Image as KonvaImage } from "react-konva";
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Types
@@ -309,6 +309,7 @@ interface CanvasPanelProps {
   onUpdateLayer: (layer: Layer) => void;
   exportRequest: number;
   onExportReady: (dataUrl: string) => void;
+  uploads: ScreenshotAsset[];
 }
 
 function CanvasPanel({
@@ -319,13 +320,35 @@ function CanvasPanel({
   onUpdateLayer,
   exportRequest,
   onExportReady,
-}: CanvasPanelProps) {
+  uploads,
+}: CanvasPanelProps & { uploads: ScreenshotAsset[] }) {
   const canvasRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
+  const [loadedImages, setLoadedImages] = useState<Record<string, HTMLImageElement>>({});
 
   useEffect(() => {
     setIsClient(true);
   }, []);
+
+  // Load images for Konva
+  useEffect(() => {
+    if (!isClient) return;
+
+    const imagePromises = uploads.map((upload) => {
+      return new Promise<void>((resolve) => {
+        const img = new window.Image();
+        img.crossOrigin = 'anonymous';
+        img.onload = () => {
+          setLoadedImages((prev) => ({ ...prev, [upload.id]: img }));
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = upload.dataUrl;
+      });
+    });
+
+    Promise.all(imagePromises).catch(() => {});
+  }, [isClient, uploads]);
 
   // Handle export
   useEffect(() => {
@@ -372,95 +395,124 @@ function CanvasPanel({
           scale={{ x: scale, y: scale }}
         >
           <KonvaLayer>
-            {/* Background */}
             {sortedLayers.map((layer) => {
-                if (!layer.visible) return null;
+              if (!layer.visible) return null;
 
-                if (layer.type === 'background') {
+              // Background Layer
+              if (layer.type === 'background') {
+                if (layer.bgType === 'solid') {
                   return (
-                    <React.Fragment key={layer.id}>
-                      {layer.bgType === 'solid' && (
-                        <Rect
-                          x={0}
-                          y={0}
-                          width={config.exportedPngSize.w}
-                          height={config.exportedPngSize.h}
-                          fill={layer.color}
-                        />
-                      )}
-                      {layer.bgType === 'gradient' && layer.gradient && (
-                        <Rect
-                          x={0}
-                          y={0}
-                          width={config.exportedPngSize.w}
-                          height={config.exportedPngSize.h}
-                          fill={layer.gradient.stops[0]?.color || '#667eea'}
-                        />
-                      )}
-                    </React.Fragment>
-                  );
-                }
-
-                if (layer.type === 'image') {
-                  return (
-                    <Group key={layer.id} x={layer.x} y={layer.y}>
-                      {/* Image placeholder */}
-                      <Rect
-                        width={layer.width}
-                        height={layer.height}
-                        fill={layer.assetRef ? '#4a5568' : '#2d3748'}
-                        cornerRadius={layer.cornerRadius || 0}
-                        onClick={() => onSelectLayer(layer.id)}
-                      />
-                      {/* Device frame indicator */}
-                      {layer.showDeviceFrame && (
-                        <Rect
-                          x={2}
-                          y={2}
-                          width={layer.width - 4}
-                          height={layer.height - 4}
-                          fill="none"
-                          stroke="#718096"
-                          strokeWidth={3}
-                          cornerRadius={layer.cornerRadius || 0}
-                        />
-                      )}
-                    </Group>
-                  );
-                }
-
-                if (layer.type === 'text') {
-                  return (
-                    <Text
+                    <Rect
                       key={layer.id}
                       x={layer.x}
                       y={layer.y}
-                      text={layer.content}
-                      fontSize={layer.fontSize}
-                      fill={layer.color}
-                      align={layer.align}
                       width={layer.width}
                       height={layer.height}
-                      onClick={() => onSelectLayer(layer.id)}
+                      fill={layer.color}
                     />
                   );
                 }
-
-                if (layer.type === 'sticker') {
+                if (layer.bgType === 'gradient' && layer.gradient) {
+                  // Use Konva's linear gradient props
+                  const startColor = layer.gradient.stops[0]?.color || '#667eea';
+                  const endColor = layer.gradient.stops[1]?.color || '#764ba2';
                   return (
-                    <Circle
+                    <Rect
                       key={layer.id}
-                      x={layer.x + layer.width / 2}
-                      y={layer.y + layer.height / 2}
-                      radius={Math.min(layer.width, layer.height) / 2}
-                      fill="#fbbf24"
-                      onClick={() => onSelectLayer(layer.id)}
+                      x={layer.x}
+                      y={layer.y}
+                      width={layer.width}
+                      height={layer.height}
+                      fillLinearGradientStartPoint={{ x: 0, y: 0 }}
+                      fillLinearGradientEndPoint={{ x: config.exportedPngSize.w, y: config.exportedPngSize.h }}
+                      fillLinearGradientColorStops={[0, startColor, 1, endColor]}
                     />
                   );
                 }
-
                 return null;
-              })}
+              }
+
+              // Image Layer
+              if (layer.type === 'image') {
+                const uploadedImage = layer.assetRef ? loadedImages[layer.assetRef] : null;
+
+                return (
+                  <Group key={layer.id} x={layer.x} y={layer.y}>
+                    {/* Clipped image with corner radius */}
+                    <Group
+                      clipFunc={(ctx) => {
+                        const r = layer.cornerRadius || 0;
+                        ctx.beginPath();
+                        ctx.roundRect(0, 0, layer.width, layer.height, r);
+                        ctx.closePath();
+                      }}
+                    >
+                      {uploadedImage ? (
+                        <KonvaImage
+                          image={uploadedImage}
+                          x={0}
+                          y={0}
+                          width={layer.width}
+                          height={layer.height}
+                        />
+                      ) : (
+                        <Rect
+                          width={layer.width}
+                          height={layer.height}
+                          fill="#4a5568"
+                        />
+                      )}
+                    </Group>
+                    {/* Border */}
+                    <Rect
+                      width={layer.width}
+                      height={layer.height}
+                      fill="none"
+                      stroke="#1a202c"
+                      strokeWidth={1}
+                      cornerRadius={layer.cornerRadius || 0}
+                      onClick={() => onSelectLayer(layer.id)}
+                    />
+                  </Group>
+                );
+              }
+
+              // Text Layer
+              if (layer.type === 'text') {
+                return (
+                  <Text
+                    key={layer.id}
+                    x={layer.x}
+                    y={layer.y}
+                    text={layer.content}
+                    fontSize={layer.fontSize}
+                    fill={layer.color}
+                    align={layer.align}
+                    width={layer.width}
+                    height={layer.height}
+                    fontFamily={layer.fontFamily}
+                    fontStyle={layer.fontWeight === 'bold' || layer.fontWeight === '700' ? 'bold' : layer.fontWeight === '600' ? '600' : 'normal'}
+                    onClick={() => onSelectLayer(layer.id)}
+                  />
+                );
+              }
+
+              // Sticker Layer
+              if (layer.type === 'sticker') {
+                return (
+                  <Circle
+                    key={layer.id}
+                    x={layer.x + layer.width / 2}
+                    y={layer.y + layer.height / 2}
+                    radius={Math.min(layer.width, layer.height) / 2}
+                    fill="#fbbf24"
+                    onClick={() => onSelectLayer(layer.id)}
+                  />
+                );
+              }
+
+              return null;
+            })}
 
             {/* Selection box */}
             {selectedLayerId && (
@@ -484,6 +536,151 @@ function CanvasPanel({
           </KonvaLayer>
         </Stage>
       </div>
+    </div>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Layer List Component
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface LayerListProps {
+  layers: Layer[];
+  selectedLayerId: string | null;
+  onSelectLayer: (id: string) => void;
+  onToggleVisibility: (id: string) => void;
+  onDeleteLayer: (id: string) => void;
+  onMoveLayerUp: (id: string) => void;
+  onMoveLayerDown: (id: string) => void;
+  onAddLayer: (type: Layer["type"]) => void;
+}
+
+function LayerList({
+  layers,
+  selectedLayerId,
+  onSelectLayer,
+  onToggleVisibility,
+  onDeleteLayer,
+  onMoveLayerUp,
+  onMoveLayerDown,
+  onAddLayer,
+}: LayerListProps) {
+  const sortedLayers = [...layers].sort((a, b) => a.zIndex - b.zIndex);
+
+  return (
+    <div className="border-t-2 border-black p-4 bg-white">
+      <div className="flex items-center justify-between mb-3">
+        <div className="flex items-center gap-2">
+          <Layers3 className="w-4 h-4" />
+          <h2 className="font-display text-sm uppercase tracking-wider">Layers</h2>
+        </div>
+        <div className="flex items-center gap-1">
+          <button
+            onClick={() => onAddLayer('background')}
+            className="p-1 hover:bg-yellow-100 border border-black"
+            title="Add Background Layer"
+          >
+            <span className="text-xs font-bold">BG</span>
+          </button>
+          <button
+            onClick={() => onAddLayer('image')}
+            className="p-1 hover:bg-yellow-100 border border-black"
+            title="Add Image Layer"
+          >
+            <span className="text-xs font-bold">IMG</span>
+          </button>
+          <button
+            onClick={() => onAddLayer('text')}
+            className="p-1 hover:bg-yellow-100 border border-black"
+            title="Add Text Layer"
+          >
+            <span className="text-xs font-bold">T</span>
+          </button>
+          <button
+            onClick={() => onAddLayer('sticker')}
+            className="p-1 hover:bg-yellow-100 border border-black"
+            title="Add Sticker Layer"
+          >
+            <span className="text-xs font-bold">★</span>
+          </button>
+        </div>
+      </div>
+
+      <div className="space-y-1 max-h-64 overflow-y-auto">
+        {sortedLayers.map((layer, index) => (
+          <div
+            key={layer.id}
+            className={`flex items-center gap-2 p-2 border-2 transition-colors ${
+              selectedLayerId === layer.id
+                ? 'border-black bg-black text-white'
+                : 'border-black bg-gray-50 hover:bg-yellow-50'
+            }`}
+            onClick={() => onSelectLayer(layer.id)}
+          >
+            {/* Visibility toggle */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onToggleVisibility(layer.id);
+              }}
+              className="p-0.5 hover:opacity-70"
+            >
+              {layer.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+            </button>
+
+            {/* Layer type indicator */}
+            <span className="text-xs font-bold w-6 text-center uppercase">
+              {layer.type === 'background' ? 'BG' : layer.type === 'image' ? 'IMG' : layer.type === 'text' ? 'T' : '★'}
+            </span>
+
+            {/* Layer name */}
+            <span className="text-xs font-mono flex-1 truncate">
+              {layer.type === 'text' ? (layer as TextLayer).content.slice(0, 20) : `${layer.type} #${index + 1}`}
+            </span>
+
+            {/* Move buttons */}
+            <div className="flex items-center gap-0.5">
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveLayerUp(layer.id);
+                }}
+                className="p-0.5 hover:opacity-70"
+                disabled={index === sortedLayers.length - 1}
+              >
+                <ChevronUp className="w-3 h-3" />
+              </button>
+              <button
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onMoveLayerDown(layer.id);
+                }}
+                className="p-0.5 hover:opacity-70"
+                disabled={index === 0}
+              >
+                <ChevronDown className="w-3 h-3" />
+              </button>
+            </div>
+
+            {/* Delete button */}
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onDeleteLayer(layer.id);
+              }}
+              className="p-0.5 hover:text-red-600"
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+      </div>
+
+      {sortedLayers.length === 0 && (
+        <p className="text-xs font-mono text-gray-400 text-center py-4">
+          No layers yet. Click + to add one.
+        </p>
+      )}
     </div>
   );
 }
@@ -823,6 +1020,92 @@ export default function ScreenshotsPage() {
     setSelectedLayerId(null);
   }, [currentSlideIndex, selectedLayerId, addToHistory]);
 
+  const toggleLayerVisibility = useCallback((layerId: string) => {
+    setConfig((prev) => {
+      const newConfig = {
+        ...prev,
+        slides: prev.slides.map((slide, i) =>
+          i === currentSlideIndex
+            ? {
+                ...slide,
+                layers: slide.layers.map((l) =>
+                  l.id === layerId ? { ...l, visible: !l.visible } : l
+                ),
+              }
+            : slide
+        ),
+      };
+      addToHistory(newConfig);
+      return newConfig;
+    });
+  }, [currentSlideIndex, addToHistory]);
+
+  const moveLayerUp = useCallback((layerId: string) => {
+    setConfig((prev) => {
+      const slide = prev.slides[currentSlideIndex];
+      if (!slide) return prev;
+
+      const layers = [...slide.layers];
+      const index = layers.findIndex((l) => l.id === layerId);
+      if (index === -1 || index >= layers.length - 1) return prev;
+
+      // Swap with next layer
+      const temp = layers[index].zIndex;
+      layers[index].zIndex = layers[index + 1].zIndex;
+      layers[index + 1].zIndex = temp;
+
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) =>
+          i === currentSlideIndex ? { ...slide, layers } : s
+        ),
+      };
+    });
+  }, [currentSlideIndex, addToHistory]);
+
+  const moveLayerDown = useCallback((layerId: string) => {
+    setConfig((prev) => {
+      const slide = prev.slides[currentSlideIndex];
+      if (!slide) return prev;
+
+      const layers = [...slide.layers];
+      const index = layers.findIndex((l) => l.id === layerId);
+      if (index === -1 || index === 0) return prev;
+
+      // Swap with previous layer
+      const temp = layers[index].zIndex;
+      layers[index].zIndex = layers[index - 1].zIndex;
+      layers[index - 1].zIndex = temp;
+
+      return {
+        ...prev,
+        slides: prev.slides.map((s, i) =>
+          i === currentSlideIndex ? { ...slide, layers } : s
+        ),
+      };
+    });
+  }, [currentSlideIndex, addToHistory]);
+
+  const addLayer = useCallback((type: Layer["type"]) => {
+    const newLayer = createDefaultLayer(type, 100);
+    setConfig((prev) => {
+      const newConfig = {
+        ...prev,
+        slides: prev.slides.map((slide, i) =>
+          i === currentSlideIndex
+            ? {
+                ...slide,
+                layers: [...slide.layers, newLayer],
+              }
+            : slide
+        ),
+      };
+      addToHistory(newConfig);
+      return newConfig;
+    });
+    setSelectedLayerId(newLayer.id);
+  }, [currentSlideIndex, addToHistory]);
+
   const handleGenerateDraft = () => {
     if (uploads.length === 0) {
       alert('Please upload at least one screenshot first.');
@@ -1001,12 +1284,48 @@ export default function ScreenshotsPage() {
           onUpdateLayer={updateLayer}
           exportRequest={exportRequest}
           onExportReady={handleExportReady}
+          uploads={uploads}
         />
       </main>
 
       {/* Right Panel */}
       <aside className="w-80 border-l-2 border-black bg-white flex flex-col h-full overflow-hidden">
-        <PropertyPanel layer={selectedLayer} onChange={updateLayer} onDelete={deleteLayer} />
+        {/* Layer List */}
+        {currentSlide && (
+          <LayerList
+            layers={currentSlide.layers}
+            selectedLayerId={selectedLayerId}
+            onSelectLayer={setSelectedLayerId}
+            onToggleVisibility={toggleLayerVisibility}
+            onDeleteLayer={(layerId) => {
+              if (selectedLayerId === layerId) setSelectedLayerId(null);
+              setConfig((prev) => ({
+                ...prev,
+                slides: prev.slides.map((slide, i) =>
+                  i === currentSlideIndex
+                    ? { ...slide, layers: slide.layers.filter((l) => l.id !== layerId) }
+                    : slide
+                ),
+              }));
+              addToHistory({
+                ...config,
+                slides: config.slides.map((slide, i) =>
+                  i === currentSlideIndex
+                    ? { ...slide, layers: slide.layers.filter((l) => l.id !== layerId) }
+                    : slide
+                ),
+              });
+            }}
+            onMoveLayerUp={moveLayerUp}
+            onMoveLayerDown={moveLayerDown}
+            onAddLayer={addLayer}
+          />
+        )}
+
+        {/* Property Panel */}
+        <div className="flex-1 overflow-hidden">
+          <PropertyPanel layer={selectedLayer} onChange={updateLayer} onDelete={deleteLayer} />
+        </div>
 
         {/* Next Up Section */}
         <div className="border-t-2 border-black p-4 bg-black text-white">
