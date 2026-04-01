@@ -373,8 +373,7 @@ function CanvasPanel({
         >
           <KonvaLayer>
             {/* Background */}
-            <KonvaLayer>
-              {sortedLayers.map((layer) => {
+            {sortedLayers.map((layer) => {
                 if (!layer.visible) return null;
 
                 if (layer.type === 'background') {
@@ -462,7 +461,6 @@ function CanvasPanel({
 
                 return null;
               })}
-            </KonvaLayer>
 
             {/* Selection box */}
             {selectedLayerId && (
