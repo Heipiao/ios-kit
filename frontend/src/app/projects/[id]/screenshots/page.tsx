@@ -30,7 +30,7 @@ import {
   generateId,
   createDefaultLayer,
 } from "@/lib/layer-tree-mock";
-import { Stage, Layer as KonvaLayer, Rect, Text, Circle, Group, Image as KonvaImage } from "react-konva";
+import { Stage, Layer as KonvaLayer, Rect, Text, Circle, Group, Image as KonvaImage, Transformer } from "react-konva";
 import { getProject, type Project, type Asset, saveScreenshotConfig, generateScreenshotWithAI } from "@/lib/api-projects";
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -73,6 +73,7 @@ function CanvasPanel({
   uploads,
 }: CanvasPanelProps) {
   const canvasRef = useRef<any>(null);
+  const transformerRef = useRef<any>(null);
   const [isClient, setIsClient] = useState(false);
   const [loadedImages, setLoadedImages] = useState<Record<string, HTMLImageElement>>({});
 
@@ -99,12 +100,37 @@ function CanvasPanel({
     Promise.all(imagePromises).catch(() => {});
   }, [isClient, uploads]);
 
+  // Attach transformer to selected node
+  useEffect(() => {
+    if (!isClient || !transformerRef.current || !canvasRef.current) return;
+
+    const stage = canvasRef.current.getStage();
+    if (!stage) return;
+
+    const selectedNode = stage.findOne(`#${selectedLayerId}`);
+    if (selectedNode) {
+      transformerRef.current.nodes([selectedNode]);
+      transformerRef.current.getLayer()?.batchDraw();
+    } else {
+      transformerRef.current.nodes([]);
+      transformerRef.current.getLayer()?.batchDraw();
+    }
+  }, [isClient, selectedLayerId, config]);
+
   useEffect(() => {
     if (exportRequest > 0 && canvasRef.current) {
       const stage = canvasRef.current.getStage();
       if (stage) {
+        // Hide transformer before export
+        if (transformerRef.current) {
+          transformerRef.current.hide();
+        }
         const dataUrl = stage.toDataURL({ mimeType: "image/png", quality: 1 });
         onExportReady(dataUrl);
+        // Show transformer after export
+        if (transformerRef.current) {
+          transformerRef.current.show();
+        }
       }
     }
   }, [exportRequest, onExportReady]);
@@ -146,17 +172,20 @@ function CanvasPanel({
               if (!layer.visible) return null;
 
               if (layer.type === "background") {
+                // Background layer: always fills the entire canvas, cannot be selected/edited
                 if (layer.bgType === "solid") {
                   return (
                     <Rect
                       key={layer.id}
-                      x={layer.x}
-                      y={layer.y}
-                      width={layer.width}
-                      height={layer.height}
+                      id={layer.id}
+                      x={0}
+                      y={0}
+                      width={config.exportedPngSize.w}
+                      height={config.exportedPngSize.h}
                       fill={layer.color}
                       opacity={layer.opacity}
                       rotation={layer.rotation}
+                      listening={false}
                     />
                   );
                 }
@@ -166,15 +195,17 @@ function CanvasPanel({
                   return (
                     <Rect
                       key={layer.id}
-                      x={layer.x}
-                      y={layer.y}
-                      width={layer.width}
-                      height={layer.height}
+                      id={layer.id}
+                      x={0}
+                      y={0}
+                      width={config.exportedPngSize.w}
+                      height={config.exportedPngSize.h}
                       fillLinearGradientStartPoint={{ x: 0, y: 0 }}
                       fillLinearGradientEndPoint={{ x: config.exportedPngSize.w, y: config.exportedPngSize.h }}
                       fillLinearGradientColorStops={[0, startColor, 1, endColor]}
                       opacity={layer.opacity}
                       rotation={layer.rotation}
+                      listening={false}
                     />
                   );
                 }
@@ -187,10 +218,19 @@ function CanvasPanel({
                 return (
                   <Group
                     key={layer.id}
+                    id={layer.id}
                     x={layer.x}
                     y={layer.y}
                     rotation={layer.rotation}
                     opacity={layer.opacity}
+                    draggable
+                    onDragEnd={(e) => {
+                      onUpdateLayer({
+                        ...layer,
+                        x: e.target.x(),
+                        y: e.target.y(),
+                      });
+                    }}
                   >
                     <Group
                       clipFunc={(ctx) => {
@@ -233,6 +273,7 @@ function CanvasPanel({
                 return (
                   <Text
                     key={layer.id}
+                    id={layer.id}
                     x={layer.x}
                     y={layer.y}
                     text={layer.content}
@@ -251,6 +292,14 @@ function CanvasPanel({
                     }
                     opacity={layer.opacity}
                     rotation={layer.rotation}
+                    draggable
+                    onDragEnd={(e) => {
+                      onUpdateLayer({
+                        ...layer,
+                        x: e.target.x(),
+                        y: e.target.y(),
+                      });
+                    }}
                     onClick={() => onSelectLayer(layer.id)}
                   />
                 );
@@ -258,40 +307,68 @@ function CanvasPanel({
 
               if (layer.type === "sticker") {
                 return (
-                  <Circle
+                  <Group
                     key={layer.id}
+                    id={layer.id}
                     x={layer.x + layer.width / 2}
                     y={layer.y + layer.height / 2}
-                    radius={Math.min(layer.width, layer.height) / 2}
-                    fill="#fbbf24"
-                    opacity={layer.opacity}
                     rotation={layer.rotation}
-                    onClick={() => onSelectLayer(layer.id)}
-                  />
+                    opacity={layer.opacity}
+                    draggable
+                    onDragEnd={(e) => {
+                      onUpdateLayer({
+                        ...layer,
+                        x: e.target.x() - layer.width / 2,
+                        y: e.target.y() - layer.height / 2,
+                      });
+                    }}
+                  >
+                    <Circle
+                      x={0}
+                      y={0}
+                      radius={Math.min(layer.width, layer.height) / 2}
+                      fill="#fbbf24"
+                      onClick={() => onSelectLayer(layer.id)}
+                    />
+                  </Group>
                 );
               }
 
               return null;
             })}
 
-            {selectedLayerId && (
-              (() => {
+            {/* Transformer for drag/resize with yellow dashed border */}
+            <Transformer
+              ref={transformerRef}
+              stroke="#eab308"
+              strokeWidth={2}
+              dash={[5, 5]}
+              anchorStroke="#eab308"
+              anchorFill="#ffffff"
+              anchorSize={8}
+              borderStroke="#eab308"
+              enabledAnchors={["top-left", "top-right", "bottom-left", "bottom-right"]}
+              onTransformEnd={(e) => {
+                const transformer = e.target as any;
+                const node = transformer.nodes()[0];
+                if (!node || !selectedLayerId) return;
+
                 const layer = sortedLayers.find((l) => l.id === selectedLayerId);
-                if (!layer) return null;
-                return (
-                  <Rect
-                    x={layer.x - 2}
-                    y={layer.y - 2}
-                    width={layer.width + 4}
-                    height={layer.height + 4}
-                    stroke="#3b82f6"
-                    strokeWidth={2}
-                    dash={[5, 5]}
-                    listening={false}
-                  />
-                );
-              })()
-            )}
+                if (!layer || layer.type === "background") return;
+
+                const stage = canvasRef.current.getStage();
+                const scale = stage?.scaleX() || 1;
+
+                onUpdateLayer({
+                  ...layer,
+                  x: node.x(),
+                  y: node.y(),
+                  width: Math.max(10, node.width() / scale),
+                  height: Math.max(10, node.height() / scale),
+                  rotation: node.rotation(),
+                });
+              }}
+            />
           </KonvaLayer>
         </Stage>
       </div>
@@ -328,57 +405,67 @@ function PropertyPanel({ layer, onChange, onDelete }: PropertyPanelProps) {
           <Palette className="w-4 h-4" />
           <h2 className="font-display text-sm uppercase tracking-wider">Inspector: {layer.type.toUpperCase()}</h2>
         </div>
-        <button
-          onClick={onDelete}
-          className="flex items-center gap-1 px-2 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors text-xs font-bold uppercase"
-        >
-          <Trash2 className="w-3 h-3" />
-          Delete
-        </button>
+        {layer.type !== "background" && (
+          <button
+            onClick={onDelete}
+            className="flex items-center gap-1 px-2 py-1 border-2 border-red-600 text-red-600 hover:bg-red-600 hover:text-white transition-colors text-xs font-bold uppercase"
+          >
+            <Trash2 className="w-3 h-3" />
+            Delete
+          </button>
+        )}
       </div>
 
       <section>
         <span className="text-xs font-mono uppercase tracking-wider text-gray-500 block mb-2">Position</span>
-        <div className="grid grid-cols-2 gap-2">
-          <label className="block">
-            <span className="text-[10px] font-mono uppercase text-gray-500">X</span>
-            <input
-              type="number"
-              value={layer.x}
-              onChange={(e) => onChange({ ...layer, x: Number(e.target.value) })}
-              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] font-mono uppercase text-gray-500">Y</span>
-            <input
-              type="number"
-              value={layer.y}
-              onChange={(e) => onChange({ ...layer, y: Number(e.target.value) })}
-              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
-            />
-          </label>
-        </div>
-        <div className="grid grid-cols-2 gap-2 mt-2">
-          <label className="block">
-            <span className="text-[10px] font-mono uppercase text-gray-500">Width</span>
-            <input
-              type="number"
-              value={layer.width}
-              onChange={(e) => onChange({ ...layer, width: Number(e.target.value) })}
-              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
-            />
-          </label>
-          <label className="block">
-            <span className="text-[10px] font-mono uppercase text-gray-500">Height</span>
-            <input
-              type="number"
-              value={layer.height}
-              onChange={(e) => onChange({ ...layer, height: Number(e.target.value) })}
-              className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
-            />
-          </label>
-        </div>
+        {layer.type === "background" ? (
+          <p className="text-xs font-mono text-gray-400 py-2">
+            Background layer fills the entire canvas and cannot be repositioned.
+          </p>
+        ) : (
+          <>
+            <div className="grid grid-cols-2 gap-2">
+              <label className="block">
+                <span className="text-[10px] font-mono uppercase text-gray-500">X</span>
+                <input
+                  type="number"
+                  value={layer.x}
+                  onChange={(e) => onChange({ ...layer, x: Number(e.target.value) })}
+                  className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-mono uppercase text-gray-500">Y</span>
+                <input
+                  type="number"
+                  value={layer.y}
+                  onChange={(e) => onChange({ ...layer, y: Number(e.target.value) })}
+                  className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+            <div className="grid grid-cols-2 gap-2 mt-2">
+              <label className="block">
+                <span className="text-[10px] font-mono uppercase text-gray-500">Width</span>
+                <input
+                  type="number"
+                  value={layer.width}
+                  onChange={(e) => onChange({ ...layer, width: Number(e.target.value) })}
+                  className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                />
+              </label>
+              <label className="block">
+                <span className="text-[10px] font-mono uppercase text-gray-500">Height</span>
+                <input
+                  type="number"
+                  value={layer.height}
+                  onChange={(e) => onChange({ ...layer, height: Number(e.target.value) })}
+                  className="mt-1 w-full border-2 border-black px-2 py-1.5 text-sm"
+                />
+              </label>
+            </div>
+          </>
+        )}
       </section>
 
       <section>
@@ -560,68 +647,78 @@ function LayerList({
       </div>
 
       <div className="space-y-1 max-h-64 overflow-y-auto">
-        {sortedLayers.map((layer, index) => (
-          <div
-            key={layer.id}
-            className={`flex items-center gap-2 p-2 border-2 transition-colors ${
-              selectedLayerId === layer.id
-                ? "border-black bg-black text-white"
-                : "border-black bg-gray-50 hover:bg-yellow-50"
-            }`}
-            onClick={() => onSelectLayer(layer.id)}
-          >
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onToggleVisibility(layer.id);
-              }}
-              className="p-0.5 hover:opacity-70"
+        {sortedLayers.map((layer, index) => {
+          const isBackground = layer.type === "background";
+
+          return (
+            <div
+              key={layer.id}
+              className={`flex items-center gap-2 p-2 border-2 transition-colors ${
+                selectedLayerId === layer.id
+                  ? "border-black bg-black text-white"
+                  : "border-black bg-gray-50 hover:bg-yellow-50"
+              }`}
+              onClick={() => onSelectLayer(layer.id)}
             >
-              {layer.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
-            </button>
-
-            <span className="text-xs font-bold w-6 text-center uppercase">
-              {layer.type === "background" ? "BG" : layer.type === "image" ? "IMG" : layer.type === "text" ? "T" : "★"}
-            </span>
-
-            <span className="text-xs font-mono flex-1 truncate">
-              {layer.type === "text" ? (layer as TextLayer).content.slice(0, 20) : `${layer.type} #${index + 1}`}
-            </span>
-
-            <div className="flex items-center gap-0.5">
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onMoveLayerUp(layer.id);
+                  onToggleVisibility(layer.id);
                 }}
                 className="p-0.5 hover:opacity-70"
-                disabled={index === sortedLayers.length - 1}
               >
-                <ChevronUp className="w-3 h-3" />
+                {layer.visible ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
               </button>
+
+              <span className="text-xs font-bold w-6 text-center uppercase">
+                {layer.type === "background" ? "BG" : layer.type === "image" ? "IMG" : layer.type === "text" ? "T" : "★"}
+              </span>
+
+              <span className="text-xs font-mono flex-1 truncate">
+                {layer.type === "text" ? (layer as TextLayer).content.slice(0, 20) : `${layer.type} #${index + 1}`}
+              </span>
+
+              {/* Move buttons - disabled for background layer */}
+              <div className="flex items-center gap-0.5">
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveLayerUp(layer.id);
+                  }}
+                  className="p-0.5 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={index === sortedLayers.length - 1 || isBackground}
+                  title={isBackground ? "Background layer cannot be moved" : "Move up"}
+                >
+                  <ChevronUp className="w-3 h-3" />
+                </button>
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    onMoveLayerDown(layer.id);
+                  }}
+                  className="p-0.5 hover:opacity-70 disabled:opacity-30 disabled:cursor-not-allowed"
+                  disabled={index === 0 || isBackground}
+                  title={isBackground ? "Background layer cannot be moved" : "Move down"}
+                >
+                  <ChevronDown className="w-3 h-3" />
+                </button>
+              </div>
+
+              {/* Delete button - disabled for background layer */}
               <button
                 onClick={(e) => {
                   e.stopPropagation();
-                  onMoveLayerDown(layer.id);
+                  onDeleteLayer(layer.id);
                 }}
-                className="p-0.5 hover:opacity-70"
-                disabled={index === 0}
+                className="p-0.5 hover:text-red-600 disabled:opacity-30 disabled:cursor-not-allowed"
+                disabled={isBackground}
+                title={isBackground ? "Background layer cannot be deleted" : "Delete"}
               >
-                <ChevronDown className="w-3 h-3" />
+                <Trash2 className="w-3 h-3" />
               </button>
             </div>
-
-            <button
-              onClick={(e) => {
-                e.stopPropagation();
-                onDeleteLayer(layer.id);
-              }}
-              className="p-0.5 hover:text-red-600"
-            >
-              <Trash2 className="w-3 h-3" />
-            </button>
-          </div>
-        ))}
+          );
+        })}
       </div>
 
       {sortedLayers.length === 0 && (
@@ -828,6 +925,9 @@ export default function ScreenshotEditorPage() {
       if (!slide) return prev;
       const layers = [...slide.layers];
       const index = layers.findIndex((l) => l.id === layerId);
+      const layer = layers[index];
+      // Cannot move background layer
+      if (layer?.type === "background") return prev;
       if (index === -1 || index >= layers.length - 1) return prev;
       const temp = layers[index].zIndex;
       layers[index].zIndex = layers[index + 1].zIndex;
@@ -842,6 +942,9 @@ export default function ScreenshotEditorPage() {
       if (!slide) return prev;
       const layers = [...slide.layers];
       const index = layers.findIndex((l) => l.id === layerId);
+      const layer = layers[index];
+      // Cannot move background layer
+      if (layer?.type === "background") return prev;
       if (index === -1 || index === 0) return prev;
       const temp = layers[index].zIndex;
       layers[index].zIndex = layers[index - 1].zIndex;
@@ -851,7 +954,17 @@ export default function ScreenshotEditorPage() {
   }, [currentSlideIndex]);
 
   const addLayer = useCallback((type: Layer["type"]) => {
-    const newLayer = createDefaultLayer(type, 100);
+    // Prevent adding background layer - it's automatically created for each slide
+    if (type === "background") {
+      alert("Background layer is automatically created for each slide");
+      return;
+    }
+
+    // Calculate the next zIndex (should be higher than all existing layers)
+    const slide = config.slides[currentSlideIndex];
+    const maxZIndex = slide ? Math.max(...slide.layers.map((l) => l.zIndex)) : 0;
+
+    const newLayer = createDefaultLayer(type, maxZIndex + 1);
     setConfig((prev) => {
       const newConfig = {
         ...prev,
@@ -863,7 +976,7 @@ export default function ScreenshotEditorPage() {
       return newConfig;
     });
     setSelectedLayerId(newLayer.id);
-  }, [currentSlideIndex, addToHistory]);
+  }, [currentSlideIndex, config, addToHistory]);
 
   const handleExportReady = async (dataUrl: string) => {
     // Download the exported image
@@ -1040,6 +1153,12 @@ export default function ScreenshotEditorPage() {
             onSelectLayer={setSelectedLayerId}
             onToggleVisibility={toggleLayerVisibility}
             onDeleteLayer={(layerId) => {
+              // Prevent deleting background layer
+              const layerToDelete = currentSlide.layers.find((l) => l.id === layerId);
+              if (layerToDelete?.type === "background") {
+                alert("Background layer cannot be deleted");
+                return;
+              }
               if (selectedLayerId === layerId) setSelectedLayerId(null);
               setConfig((prev) => ({
                 ...prev,
