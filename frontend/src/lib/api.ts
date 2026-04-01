@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.NEXT_PUBLIC_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.PUBLIC_API_BASE_URL || 'http://localhost:8000'
 
 type DeviceType = 'iphone_65' | 'iphone_67' | 'iphone_55' | 'ipad_129' | 'ipad_11' | 'ipad_109'
 type BackgroundStyle = 'gradient' | 'gradient_blue' | 'gradient_purple' | 'gradient_sunset' | 'solid_white' | 'solid_black' | 'dark'
