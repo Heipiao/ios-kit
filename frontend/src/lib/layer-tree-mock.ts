@@ -1,6 +1,6 @@
 // Mock 数据和配置
 
-import { AiLayerTreeConfig, FrameConfig, StickerConfig } from "./layer-tree-types";
+import { AiLayerTreeConfig, FrameConfig, StickerConfig, Layer } from "./layer-tree-types";
 
 // Frame 资源配置（Mock）
 export const FRAME_REGISTRY: Record<string, FrameConfig> = {
@@ -171,7 +171,7 @@ export function generateId(prefix: string): string {
 }
 
 // 辅助函数：创建默认图层
-export function createDefaultLayer(type: LayerType, index: number): Layer {
+export function createDefaultLayer(type: Layer["type"], index: number): Layer {
   const baseLayer = {
     id: generateId(type),
     visible: true,

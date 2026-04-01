@@ -240,9 +240,10 @@ function ImageLayerComponent({
 
       {/* 无图片提示 */}
       {!layer.assetRef && (
-        <text
-          x={layer.width / 2}
-          y={layer.height / 2}
+        <Text
+          x={0}
+          y={layer.height / 2 - 7}
+          width={layer.width}
           text="点击上传图片"
           fontSize={14}
           fill="#a0aec0"
