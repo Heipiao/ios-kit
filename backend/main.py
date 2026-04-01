@@ -12,11 +12,16 @@ app = FastAPI(title="iOS Kit API")
 # CORS 配置
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000"],
+    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Import and include project routes
+from routes import router as projects_router
+
+app.include_router(projects_router, prefix="/api")
 
 
 # 健康检查
