@@ -1,73 +1,71 @@
-# React + TypeScript + Vite
+# iOS Kit Frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+基于 `Next.js 14` 的前端应用，使用 `App Router`、`TypeScript` 和 `Tailwind CSS` 构建。
 
-Currently, two official plugins are available:
+## 技术栈
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
+- Next.js 14
+- React 18
+- TypeScript
+- Tailwind CSS
+- Supabase
 
-## React Compiler
+## 环境变量
 
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
+创建 `frontend/.env.local`:
 
-## Expanding the ESLint configuration
-
-If you are developing a production application, we recommend updating the configuration to enable type-aware lint rules:
-
-```js
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-
-      // Remove tseslint.configs.recommended and replace with this
-      tseslint.configs.recommendedTypeChecked,
-      // Alternatively, use this for stricter rules
-      tseslint.configs.strictTypeChecked,
-      // Optionally, add this for stylistic rules
-      tseslint.configs.stylisticTypeChecked,
-
-      // Other configs...
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+PUBLIC_SUPABASE_URL=https://your-project.supabase.co
+PUBLIC_SUPABASE_ANON_KEY=your-supabase-anon-key
+PUBLIC_API_BASE_URL=http://127.0.0.1:8000
+PUBLIC_SITE_URL=http://127.0.0.1:3003
 ```
 
-You can also install [eslint-plugin-react-x](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-x) and [eslint-plugin-react-dom](https://github.com/Rel1cx/eslint-react/tree/main/packages/plugins/eslint-plugin-react-dom) for React-specific lint rules:
+说明:
+- 当前代码通过 `next.config.js` 暴露 `PUBLIC_*` 变量到前端
+- 开发环境建议使用 `.env.local`
 
-```js
-// eslint.config.js
-import reactX from 'eslint-plugin-react-x'
-import reactDom from 'eslint-plugin-react-dom'
+## 本地开发
 
-export default defineConfig([
-  globalIgnores(['dist']),
-  {
-    files: ['**/*.{ts,tsx}'],
-    extends: [
-      // Other configs...
-      // Enable lint rules for React
-      reactX.configs['recommended-typescript'],
-      // Enable lint rules for React DOM
-      reactDom.configs.recommended,
-    ],
-    languageOptions: {
-      parserOptions: {
-        project: ['./tsconfig.node.json', './tsconfig.app.json'],
-        tsconfigRootDir: import.meta.dirname,
-      },
-      // other options...
-    },
-  },
-])
+```bash
+npm install
+npm run dev
+```
+
+默认访问地址:
+
+- http://127.0.0.1:3003
+
+推荐直接使用启动脚本:
+
+```bash
+bash ./start-frontend.sh
+```
+
+默认会先清理 `.next`，避免 dev chunk 404 或热更新状态损坏。
+
+常用可选参数:
+
+```bash
+HOST=127.0.0.1 PORT=3003 API_BASE_URL=http://127.0.0.1:8000 bash ./start-frontend.sh
+CLEAN_NEXT=1 bash ./start-frontend.sh
+```
+
+## 常用命令
+
+```bash
+npm run dev
+npm run build
+npm run start
+npm run lint
+npm run test
+```
+
+## 目录说明
+
+```text
+src/
+├── app/          # App Router 页面与布局
+├── components/   # UI 组件
+└── lib/          # API 与客户端工具
 ```

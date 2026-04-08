@@ -4,7 +4,10 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { Plus, Clock, MoreVertical, Trash2, Smartphone, Edit3, Sparkles } from 'lucide-react'
 import { AIPanel } from '@/components/AIPanel'
-import { getProjects, deleteProject, createProject, uploadAsset, type Project } from '@/lib/api-projects'
+import { getProjects, deleteProject, createProject, uploadAsset, type PlanCode, type Project } from '@/lib/api-projects'
+import { BrandLogo } from '@/components/BrandLogo'
+
+const API_BASE_URL = process.env.PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 export default function Dashboard() {
   const router = useRouter()
@@ -49,12 +52,12 @@ export default function Dashboard() {
 
       // First check if backend is available
       try {
-        const healthCheck = await fetch(`${process.env.PUBLIC_API_BASE_URL || 'http://localhost:8000'}/health`)
+        const healthCheck = await fetch(`${API_BASE_URL}/health`)
         if (!healthCheck.ok) {
           throw new Error('Backend server is not responding')
         }
       } catch (err) {
-        alert('Cannot connect to backend server. Please make sure it is running at http://localhost:8000')
+        alert(`Cannot connect to backend server. Please make sure it is running at ${API_BASE_URL}`)
         setLoading(false)
         return
       }
@@ -105,7 +108,6 @@ export default function Dashboard() {
       const result = await createProject({
         name: 'Sample Fitness App',
         description: 'A demo project showcasing iOS Kit features',
-        deviceType: 'iphone_67',
         screenshotIds,
       })
 
@@ -183,6 +185,10 @@ export default function Dashboard() {
                 key={project.id}
                 className="card-brutal p-6 group relative"
               >
+                <div className="absolute left-4 top-4 z-10">
+                  <PlanBadge planCode={project.entitlementSummary?.planCode || 'free'} />
+                </div>
+
                 {/* Three dots menu */}
                 <div className="absolute top-4 right-4">
                   <button
@@ -237,15 +243,17 @@ export default function Dashboard() {
                   className="cursor-pointer"
                   onClick={() => router.push(`/projects/${project.id}`)}
                 >
-                  <div className="flex items-start justify-between mb-4">
-                    <div className="w-14 h-14 border-2 border-black bg-yellow-400 flex items-center justify-center" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
-                      <span className="text-2xl">📱</span>
-                    </div>
+                  <div className="flex items-start justify-between mb-4 pt-8">
+                    <BrandLogo
+                      showText={false}
+                      markClassName="w-14 h-14 bg-transparent"
+                      imageClassName="object-contain p-0"
+                    />
                     <Clock className="w-5 h-5 text-gray-400" />
                   </div>
                   <h3 className="font-display font-bold text-xl uppercase mb-1">{project.name}</h3>
                   <p className="text-xs font-mono text-gray-500 mb-4 uppercase">
-                    {deviceLabels[project.deviceType] || project.deviceType}
+                    {project.deviceType ? (deviceLabels[project.deviceType] || project.deviceType) : 'Device not set'}
                   </p>
                   <p className="text-xs font-mono text-gray-500 mb-4 uppercase">
                     Updated {new Date(project.updatedAt).toLocaleDateString()}
@@ -304,5 +312,19 @@ export default function Dashboard() {
       )}
       <AIPanel isOpen={isAIPanelOpen} onClose={() => setIsAIPanelOpen(false)} />
     </div>
+  )
+}
+
+function PlanBadge({ planCode }: { planCode: PlanCode }) {
+  const styles: Record<PlanCode, string> = {
+    free: 'bg-white text-black',
+    base: 'bg-yellow-300 text-black',
+    pro: 'bg-black text-white',
+  }
+
+  return (
+    <span className={`inline-flex border-2 border-black px-2 py-1 text-[10px] font-mono uppercase tracking-[0.22em] ${styles[planCode]}`}>
+      {planCode}
+    </span>
   )
 }

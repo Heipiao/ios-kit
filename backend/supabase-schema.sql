@@ -1,13 +1,10 @@
 -- iOS Kit Database Schema for Supabase
 -- Run this in your Supabase SQL Editor to create the required tables
 
--- Enable UUID extension
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Projects table
 CREATE TABLE IF NOT EXISTS projects (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   name VARCHAR(255) NOT NULL,
   description TEXT,
   device_type VARCHAR(50) NOT NULL,
@@ -15,11 +12,9 @@ CREATE TABLE IF NOT EXISTS projects (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Assets table (screenshots, logos, etc.)
 CREATE TABLE IF NOT EXISTS assets (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
-  user_id UUID REFERENCES auth.users(id) ON DELETE CASCADE,
   type VARCHAR(50) NOT NULL CHECK (type IN ('screenshot', 'logo', 'other')),
   storage_path VARCHAR(512) NOT NULL,
   storage_url VARCHAR(1024) NOT NULL,
@@ -31,7 +26,6 @@ CREATE TABLE IF NOT EXISTS assets (
   created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Screenshot configurations table
 CREATE TABLE IF NOT EXISTS screenshot_configs (
   id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
   project_id UUID REFERENCES projects(id) ON DELETE CASCADE,
@@ -42,14 +36,70 @@ CREATE TABLE IF NOT EXISTS screenshot_configs (
   updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
 );
 
--- Create indexes for better query performance
-CREATE INDEX IF NOT EXISTS idx_projects_user_id ON projects(user_id);
+CREATE TABLE IF NOT EXISTS policy_site_configs (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL UNIQUE REFERENCES projects(id) ON DELETE CASCADE,
+  version VARCHAR(50) NOT NULL DEFAULT 'user_edited',
+  locale_default VARCHAR(10) NOT NULL DEFAULT 'en' CHECK (locale_default IN ('en', 'zh')),
+  answers JSONB NOT NULL,
+  render_data JSONB NOT NULL,
+  published BOOLEAN NOT NULL DEFAULT TRUE,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE TABLE IF NOT EXISTS project_entitlements (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL UNIQUE REFERENCES projects(id) ON DELETE CASCADE,
+  plan_code VARCHAR(20) NOT NULL CHECK (plan_code IN ('free', 'base', 'pro')),
+  status VARCHAR(20) NOT NULL DEFAULT 'active' CHECK (status IN ('inactive', 'active', 'revoked')),
+  ai_quota_total INTEGER,
+  ai_quota_used INTEGER NOT NULL DEFAULT 0 CHECK (ai_quota_used >= 0),
+  activated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE TABLE IF NOT EXISTS payment_orders (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  from_plan_code VARCHAR(20) NOT NULL CHECK (from_plan_code IN ('free', 'base', 'pro')),
+  stripe_checkout_session_id VARCHAR(255) NOT NULL UNIQUE,
+  stripe_payment_intent_id VARCHAR(255),
+  stripe_customer_id VARCHAR(255),
+  plan_code VARCHAR(20) NOT NULL CHECK (plan_code IN ('free', 'base', 'pro')),
+  amount INTEGER NOT NULL DEFAULT 0,
+  currency VARCHAR(16) NOT NULL DEFAULT 'usd',
+  mode VARCHAR(20) NOT NULL DEFAULT 'payment' CHECK (mode IN ('payment')),
+  status VARCHAR(20) NOT NULL DEFAULT 'pending' CHECK (status IN ('pending', 'paid', 'failed', 'refunded', 'expired')),
+  provider_event_id VARCHAR(255),
+  provider_payload JSONB,
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW()),
+  updated_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
+CREATE TABLE IF NOT EXISTS ai_usage_events (
+  id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+  project_id UUID NOT NULL REFERENCES projects(id) ON DELETE CASCADE,
+  feature_type VARCHAR(50) NOT NULL CHECK (feature_type IN ('screenshots_ai_generate', 'metadata_ai_generate', 'policy_ai_generate')),
+  units INTEGER NOT NULL DEFAULT 1 CHECK (units > 0),
+  source VARCHAR(20) NOT NULL DEFAULT 'api',
+  result_status VARCHAR(20) NOT NULL DEFAULT 'succeeded' CHECK (result_status IN ('succeeded', 'failed')),
+  idempotency_key VARCHAR(255) NOT NULL UNIQUE,
+  request_ref VARCHAR(255),
+  created_at TIMESTAMP WITH TIME ZONE DEFAULT TIMEZONE('utc', NOW())
+);
+
 CREATE INDEX IF NOT EXISTS idx_assets_project_id ON assets(project_id);
-CREATE INDEX IF NOT EXISTS idx_assets_user_id ON assets(user_id);
 CREATE INDEX IF NOT EXISTS idx_screenshot_configs_project_id ON screenshot_configs(project_id);
 CREATE INDEX IF NOT EXISTS idx_screenshot_configs_version ON screenshot_configs(version);
+CREATE INDEX IF NOT EXISTS idx_policy_site_configs_project_id ON policy_site_configs(project_id);
+CREATE INDEX IF NOT EXISTS idx_project_entitlements_project_id ON project_entitlements(project_id);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_project_id ON payment_orders(project_id);
+CREATE INDEX IF NOT EXISTS idx_payment_orders_status ON payment_orders(status);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_events_project_id ON ai_usage_events(project_id);
+CREATE INDEX IF NOT EXISTS idx_ai_usage_events_feature_type ON ai_usage_events(feature_type);
 
--- Create updated_at trigger function
 CREATE OR REPLACE FUNCTION update_updated_at_column()
 RETURNS TRIGGER AS $$
 BEGIN
@@ -58,115 +108,74 @@ BEGIN
 END;
 $$ LANGUAGE plpgsql;
 
--- Add updated_at triggers
+CREATE OR REPLACE FUNCTION consume_project_ai_quota(
+  p_project_id UUID,
+  p_units INTEGER DEFAULT 1
+)
+RETURNS TABLE(consumed BOOLEAN, ai_quota_used INTEGER, ai_quota_total INTEGER) AS $$
+DECLARE
+  updated_row project_entitlements%ROWTYPE;
+BEGIN
+  UPDATE project_entitlements
+  SET
+    ai_quota_used = ai_quota_used + p_units,
+    updated_at = TIMEZONE('utc', NOW())
+  WHERE project_id = p_project_id
+    AND status = 'active'
+    AND plan_code = 'base'
+    AND ai_quota_total IS NOT NULL
+    AND ai_quota_used + p_units <= ai_quota_total
+  RETURNING * INTO updated_row;
+
+  IF FOUND THEN
+    RETURN QUERY SELECT TRUE, updated_row.ai_quota_used, updated_row.ai_quota_total;
+    RETURN;
+  END IF;
+
+  SELECT *
+  INTO updated_row
+  FROM project_entitlements
+  WHERE project_id = p_project_id
+  LIMIT 1;
+
+  IF FOUND AND updated_row.plan_code = 'pro' AND updated_row.status = 'active' THEN
+    RETURN QUERY SELECT TRUE, updated_row.ai_quota_used, updated_row.ai_quota_total;
+  ELSE
+    RETURN QUERY SELECT FALSE, COALESCE(updated_row.ai_quota_used, 0), updated_row.ai_quota_total;
+  END IF;
+END;
+$$ LANGUAGE plpgsql;
+
+DROP TRIGGER IF EXISTS update_projects_updated_at ON projects;
 CREATE TRIGGER update_projects_updated_at
   BEFORE UPDATE ON projects
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
+DROP TRIGGER IF EXISTS update_screenshot_configs_updated_at ON screenshot_configs;
 CREATE TRIGGER update_screenshot_configs_updated_at
   BEFORE UPDATE ON screenshot_configs
   FOR EACH ROW
   EXECUTE FUNCTION update_updated_at_column();
 
--- Row Level Security (RLS) policies
--- Enable RLS on all tables
-ALTER TABLE projects ENABLE ROW LEVEL SECURITY;
-ALTER TABLE assets ENABLE ROW LEVEL SECURITY;
-ALTER TABLE screenshot_configs ENABLE ROW LEVEL SECURITY;
+DROP TRIGGER IF EXISTS update_policy_site_configs_updated_at ON policy_site_configs;
+CREATE TRIGGER update_policy_site_configs_updated_at
+  BEFORE UPDATE ON policy_site_configs
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 
--- Projects policies
-CREATE POLICY "Users can view their own projects"
-  ON projects FOR SELECT
-  USING (auth.uid() = user_id);
+DROP TRIGGER IF EXISTS update_project_entitlements_updated_at ON project_entitlements;
+CREATE TRIGGER update_project_entitlements_updated_at
+  BEFORE UPDATE ON project_entitlements
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 
-CREATE POLICY "Users can insert their own projects"
-  ON projects FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
+DROP TRIGGER IF EXISTS update_payment_orders_updated_at ON payment_orders;
+CREATE TRIGGER update_payment_orders_updated_at
+  BEFORE UPDATE ON payment_orders
+  FOR EACH ROW
+  EXECUTE FUNCTION update_updated_at_column();
 
-CREATE POLICY "Users can update their own projects"
-  ON projects FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own projects"
-  ON projects FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Assets policies
-CREATE POLICY "Users can view their own assets"
-  ON assets FOR SELECT
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can insert their own assets"
-  ON assets FOR INSERT
-  WITH CHECK (auth.uid() = user_id);
-
-CREATE POLICY "Users can update their own assets"
-  ON assets FOR UPDATE
-  USING (auth.uid() = user_id);
-
-CREATE POLICY "Users can delete their own assets"
-  ON assets FOR DELETE
-  USING (auth.uid() = user_id);
-
--- Screenshot configs policies
-CREATE POLICY "Users can view their own screenshot configs"
-  ON screenshot_configs FOR SELECT
-  USING (
-    EXISTS (
-      SELECT 1 FROM projects
-      WHERE projects.id = screenshot_configs.project_id
-      AND projects.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can insert their own screenshot configs"
-  ON screenshot_configs FOR INSERT
-  WITH CHECK (
-    EXISTS (
-      SELECT 1 FROM projects
-      WHERE projects.id = screenshot_configs.project_id
-      AND projects.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can update their own screenshot configs"
-  ON screenshot_configs FOR UPDATE
-  USING (
-    EXISTS (
-      SELECT 1 FROM projects
-      WHERE projects.id = screenshot_configs.project_id
-      AND projects.user_id = auth.uid()
-    )
-  );
-
-CREATE POLICY "Users can delete their own screenshot configs"
-  ON screenshot_configs FOR DELETE
-  USING (
-    EXISTS (
-      SELECT 1 FROM projects
-      WHERE projects.id = screenshot_configs.project_id
-      AND projects.user_id = auth.uid()
-    )
-  );
-
--- Storage bucket for assets (run this separately in Supabase Storage)
--- INSERT INTO storage.buckets (id, name, public) VALUES ('assets', 'assets', true);
---
--- CREATE POLICY "Allow public read access to assets"
---   ON storage.objects FOR SELECT
---   USING (bucket_id = 'assets');
---
--- CREATE POLICY "Allow authenticated users to upload assets"
---   ON storage.objects FOR INSERT
---   WITH CHECK (
---     bucket_id = 'assets' AND
---     auth.role() = 'authenticated'
---   );
---
--- CREATE POLICY "Allow users to delete their own assets"
---   ON storage.objects FOR DELETE
---   USING (
---     bucket_id = 'assets' AND
---     auth.uid()::text = (storage.foldername(name))[1]
---   );
+-- No RLS is configured here.
+-- In this project, Supabase is used as an application database only.
+-- Uploaded files are stored in Aliyun OSS rather than Supabase Storage.

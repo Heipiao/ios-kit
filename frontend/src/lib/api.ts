@@ -1,4 +1,4 @@
-const API_BASE_URL = process.env.PUBLIC_API_BASE_URL || 'http://localhost:8000'
+const API_BASE_URL = process.env.PUBLIC_API_BASE_URL || 'http://127.0.0.1:8000'
 
 type DeviceType = 'iphone_65' | 'iphone_67' | 'iphone_55' | 'ipad_129' | 'ipad_11' | 'ipad_109'
 type BackgroundStyle = 'gradient' | 'gradient_blue' | 'gradient_purple' | 'gradient_sunset' | 'solid_white' | 'solid_black' | 'dark'
@@ -84,6 +84,28 @@ export async function generatePrivacyPolicy(data: {
 
   if (!response.ok) {
     throw new Error('Privacy policy generation failed')
+  }
+
+  return response.json()
+}
+
+export async function generateTermsOfService(data: {
+  appName: string
+  appDescription?: string
+}) {
+  const response = await fetch(`${API_BASE_URL}/api/terms/generate`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      app_name: data.appName,
+      app_description: data.appDescription || '',
+    }),
+  })
+
+  if (!response.ok) {
+    throw new Error('Terms generation failed')
   }
 
   return response.json()

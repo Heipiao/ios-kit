@@ -12,7 +12,22 @@ app = FastAPI(title="iOS Kit API")
 # CORS 配置
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:5173", "http://localhost:3000", "http://localhost:8000"],
+    allow_origins=[
+        "http://localhost:3000",
+        "http://localhost:3001",
+        "http://localhost:3002",
+        "http://localhost:3003",
+        "http://127.0.0.1:3000",
+        "http://127.0.0.1:3001",
+        "http://127.0.0.1:3002",
+        "http://127.0.0.1:3003",
+        "http://localhost:5173",
+        "http://127.0.0.1:5173",
+        "http://localhost:8000",
+        "http://localhost:8001",
+        "http://127.0.0.1:8000",
+        "http://127.0.0.1:8001",
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
@@ -142,6 +157,48 @@ App 名称：{data.app_name}
 5. 用户权利
 6. 数据安全
 7. 联系我们
+
+直接返回 HTML 内容，不需要 markdown 格式。"""
+
+    message = client.messages.create(
+        model="claude-sonnet-4-5-20250929",
+        max_tokens=2048,
+        messages=[
+            {"role": "user", "content": prompt}
+        ]
+    )
+
+    return {"html": message.content[0].text}
+
+
+class TermsOfServiceRequest(BaseModel):
+    app_name: str
+    app_description: Optional[str] = None
+
+
+@app.post("/api/terms/generate")
+async def generate_terms_of_service(data: TermsOfServiceRequest):
+    """生成服务条款"""
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=os.getenv("ANTHROPIC_API_KEY"))
+
+    prompt = f"""请为以下 App 生成服务条款：
+
+App 名称：{data.app_name}
+App 描述：{data.app_description or "未提供"}
+
+请生成一份完整的服务条款文档（HTML 格式），包含：
+1. 接受条款
+2. 服务说明
+3. 用户账号
+4. 可接受使用范围
+5. 知识产权
+6. 免责声明
+7. 责任限制
+8. 终止
+9. 条款变更
+10. 联系方式
 
 直接返回 HTML 内容，不需要 markdown 格式。"""
 

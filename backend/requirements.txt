@@ -7,3 +7,5 @@ python-dotenv==1.2.2
 pydantic==2.12.5
 python-multipart==0.0.22
 playwright==1.58.0
+oss2==2.18.0
+stripe==12.4.0

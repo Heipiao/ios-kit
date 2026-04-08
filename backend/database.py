@@ -4,7 +4,6 @@ Database client for Supabase
 import os
 from supabase import create_client, Client
 from typing import Optional, List, Dict, Any
-from datetime import datetime
 
 from models import (
     ProjectCreate,
@@ -14,7 +13,16 @@ from models import (
     AssetResponse,
     ScreenshotConfigCreate,
     ScreenshotConfigResponse,
+    PolicySiteCreate,
+    PolicySiteResponse,
+    ProjectEntitlementCreate,
+    ProjectEntitlementResponse,
+    PaymentOrderCreate,
+    PaymentOrderResponse,
+    AiUsageEventCreate,
+    AiUsageEventResponse,
 )
+from pricing import build_entitlement_payload
 
 
 class DatabaseClient:
@@ -22,74 +30,71 @@ class DatabaseClient:
 
     def __init__(self):
         supabase_url = os.getenv("SUPABASE_URL")
-        supabase_key = os.getenv("SUPABASE_KEY")
+        supabase_key = os.getenv("SUPABASE_SERVICE_ROLE_KEY") or os.getenv("SUPABASE_KEY")
 
         if not supabase_url or not supabase_key:
-            raise ValueError("SUPABASE_URL and SUPABASE_KEY must be set")
+            raise ValueError("SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY or SUPABASE_KEY must be set")
 
         self.client: Client = create_client(supabase_url, supabase_key)
 
     # ==================== Projects ====================
 
-    async def get_projects(self, user_id: str) -> List[ProjectResponse]:
-        """Get all projects for a user"""
-        result = self.client.table("projects").select("*").eq("user_id", user_id).order("created_at", desc=True).execute()
+    async def get_projects(self) -> List[ProjectResponse]:
+        """Get all projects"""
+        result = self.client.table("projects").select("*").order("created_at", desc=True).execute()
         return [ProjectResponse(**project) for project in result.data]
 
-    async def get_project(self, project_id: str, user_id: str) -> Optional[ProjectResponse]:
+    async def get_project(self, project_id: str) -> Optional[ProjectResponse]:
         """Get a single project by ID"""
-        result = self.client.table("projects").select("*").eq("id", project_id).eq("user_id", user_id).execute()
+        result = self.client.table("projects").select("*").eq("id", project_id).execute()
         if result.data and len(result.data) > 0:
             return ProjectResponse(**result.data[0])
         return None
 
-    async def create_project(self, data: ProjectCreate, user_id: str) -> ProjectResponse:
+    async def create_project(self, data: ProjectCreate) -> ProjectResponse:
         """Create a new project"""
         project_data = {
             "name": data.name,
             "description": data.description or "",
             "device_type": data.device_type,
-            "user_id": user_id,
         }
         result = self.client.table("projects").insert(project_data).execute()
         return ProjectResponse(**result.data[0])
 
-    async def update_project(self, project_id: str, data: ProjectUpdate, user_id: str) -> Optional[ProjectResponse]:
+    async def update_project(self, project_id: str, data: ProjectUpdate) -> Optional[ProjectResponse]:
         """Update an existing project"""
         update_data = {k: v for k, v in data.model_dump().items() if v is not None}
         if not update_data:
-            return await self.get_project(project_id, user_id)
+            return await self.get_project(project_id)
 
-        result = self.client.table("projects").update(update_data).eq("id", project_id).eq("user_id", user_id).execute()
+        result = self.client.table("projects").update(update_data).eq("id", project_id).execute()
         if result.data and len(result.data) > 0:
             return ProjectResponse(**result.data[0])
         return None
 
-    async def delete_project(self, project_id: str, user_id: str) -> bool:
+    async def delete_project(self, project_id: str) -> bool:
         """Delete a project"""
-        result = self.client.table("projects").delete().eq("id", project_id).eq("user_id", user_id).execute()
+        result = self.client.table("projects").delete().eq("id", project_id).execute()
         return len(result.data) > 0
 
     # ==================== Assets ====================
 
-    async def get_assets(self, project_id: Optional[str] = None, user_id: Optional[str] = None) -> List[AssetResponse]:
+    async def get_assets(self, project_id: Optional[str] = None) -> List[AssetResponse]:
         """Get assets, optionally filtered by project"""
         query = self.client.table("assets").select("*")
         if project_id:
             query = query.eq("project_id", project_id)
-        if user_id:
-            query = query.eq("user_id", user_id)
         result = query.order("created_at", desc=True).execute()
         return [AssetResponse(**asset) for asset in result.data]
 
-    async def get_asset(self, asset_id: str, user_id: str) -> Optional[AssetResponse]:
+    async def get_asset(self, asset_id: str) -> Optional[AssetResponse]:
         """Get a single asset by ID"""
-        result = self.client.table("assets").select("*").eq("id", asset_id).eq("user_id", user_id).execute()
+        result = self.client.table("assets").select("*").eq("id", asset_id).execute()
         if result.data and len(result.data) > 0:
             return AssetResponse(**result.data[0])
         return None
 
-    async def create_asset(self, data: AssetCreate, user_id: str) -> AssetResponse:
+    async def create_asset(self, data: AssetCreate) -> AssetResponse:
         """Create a new asset"""
         asset_data = {
             "project_id": data.project_id,
@@ -101,21 +106,20 @@ class DatabaseClient:
             "width": data.width,
             "height": data.height,
             "file_size": data.file_size,
-            "user_id": user_id,
         }
         result = self.client.table("assets").insert(asset_data).execute()
         return AssetResponse(**result.data[0])
 
-    async def update_asset(self, asset_id: str, data: Dict[str, Any], user_id: str) -> Optional[AssetResponse]:
+    async def update_asset(self, asset_id: str, data: Dict[str, Any]) -> Optional[AssetResponse]:
         """Update an existing asset"""
-        result = self.client.table("assets").update(data).eq("id", asset_id).eq("user_id", user_id).execute()
+        result = self.client.table("assets").update(data).eq("id", asset_id).execute()
         if result.data and len(result.data) > 0:
             return AssetResponse(**result.data[0])
         return None
 
-    async def delete_asset(self, asset_id: str, user_id: str) -> bool:
+    async def delete_asset(self, asset_id: str) -> bool:
         """Delete an asset"""
-        result = self.client.table("assets").delete().eq("id", asset_id).eq("user_id", user_id).execute()
+        result = self.client.table("assets").delete().eq("id", asset_id).execute()
         return len(result.data) > 0
 
     # ==================== Screenshot Configs ====================
@@ -124,15 +128,11 @@ class DatabaseClient:
         self,
         project_id: str,
         version: Optional[str] = None,
-        user_id: Optional[str] = None
     ) -> Optional[ScreenshotConfigResponse]:
         """Get screenshot config, optionally by version"""
         query = self.client.table("screenshot_configs").select("*").eq("project_id", project_id)
         if version:
             query = query.eq("version", version)
-        if user_id:
-            # Join with projects to check user ownership
-            query = query.select("*, projects!inner(user_id)").eq("projects.user_id", user_id)
 
         result = query.order("created_at", desc=True).limit(1).execute()
         if result.data and len(result.data) > 0:
@@ -142,7 +142,6 @@ class DatabaseClient:
     async def get_screenshot_configs(
         self,
         project_id: str,
-        user_id: str
     ) -> Dict[str, ScreenshotConfigResponse]:
         """Get all screenshot configs for a project (both versions)"""
         result = self.client.table("screenshot_configs").select("*").eq("project_id", project_id).execute()
@@ -156,11 +155,10 @@ class DatabaseClient:
         self,
         project_id: str,
         data: ScreenshotConfigCreate,
-        user_id: str
     ) -> ScreenshotConfigResponse:
         """Save a screenshot config (upsert by version)"""
         # Check if config exists for this version
-        existing = await self.get_screenshot_config(project_id, data.version, user_id)
+        existing = await self.get_screenshot_config(project_id, data.version)
 
         config_data = {
             "project_id": project_id,
@@ -178,10 +176,177 @@ class DatabaseClient:
 
         return ScreenshotConfigResponse(**result.data[0])
 
-    async def delete_screenshot_config(self, config_id: str, user_id: str) -> bool:
+    async def delete_screenshot_config(self, config_id: str) -> bool:
         """Delete a screenshot config"""
         result = self.client.table("screenshot_configs").delete().eq("id", config_id).execute()
         return len(result.data) > 0
+
+    # ==================== Policy Site Configs ====================
+
+    async def get_policy_site(self, project_id: str) -> Optional[PolicySiteResponse]:
+        """Get the single policy site config for a project."""
+        result = (
+            self.client.table("policy_site_configs")
+            .select("*")
+            .eq("project_id", project_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return PolicySiteResponse(**result.data[0])
+        return None
+
+    async def save_policy_site(
+        self,
+        project_id: str,
+        data: PolicySiteCreate,
+    ) -> PolicySiteResponse:
+        """Save or update the unique policy site config for a project."""
+        existing = await self.get_policy_site(project_id)
+        policy_data = {
+            "project_id": project_id,
+            "version": data.version,
+            "locale_default": data.locale_default,
+            "answers": data.answers.model_dump(mode="json"),
+            "render_data": data.render_data.model_dump(mode="json"),
+            "published": data.published,
+        }
+
+        if existing:
+            result = (
+                self.client.table("policy_site_configs")
+                .update(policy_data)
+                .eq("id", existing.id)
+                .execute()
+            )
+        else:
+            result = self.client.table("policy_site_configs").insert(policy_data).execute()
+
+        return PolicySiteResponse(**result.data[0])
+
+    # ==================== Project Entitlements ====================
+
+    async def get_project_entitlement(self, project_id: str) -> Optional[ProjectEntitlementResponse]:
+        """Get the current entitlement row for a project."""
+        result = (
+            self.client.table("project_entitlements")
+            .select("*")
+            .eq("project_id", project_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return ProjectEntitlementResponse(**result.data[0])
+        return None
+
+    async def ensure_project_entitlement(self, project_id: str) -> ProjectEntitlementResponse:
+        """Ensure every project has a default free entitlement row."""
+        existing = await self.get_project_entitlement(project_id)
+        if existing:
+            return existing
+
+        return await self.save_project_entitlement(
+            project_id,
+            ProjectEntitlementCreate(
+                project_id=project_id,
+                **build_entitlement_payload("free"),
+            ),
+        )
+
+    async def save_project_entitlement(
+        self,
+        project_id: str,
+        data: ProjectEntitlementCreate,
+    ) -> ProjectEntitlementResponse:
+        """Create or update the current entitlement row for a project."""
+        existing = await self.get_project_entitlement(project_id)
+        payload = data.model_dump(mode="json")
+
+        if existing:
+            result = (
+                self.client.table("project_entitlements")
+                .update(payload)
+                .eq("id", existing.id)
+                .execute()
+            )
+        else:
+            result = self.client.table("project_entitlements").insert(payload).execute()
+
+        return ProjectEntitlementResponse(**result.data[0])
+
+    async def increment_ai_quota_usage(self, project_id: str, units: int = 1) -> Optional[ProjectEntitlementResponse]:
+        """Consume AI quota atomically for a project."""
+        result = self.client.rpc(
+            "consume_project_ai_quota",
+            {
+                "p_project_id": project_id,
+                "p_units": units,
+            },
+        ).execute()
+        if result.data and len(result.data) > 0:
+            row = result.data[0]
+            if row.get("consumed"):
+                return await self.get_project_entitlement(project_id)
+        return None
+
+    # ==================== Payment Orders ====================
+
+    async def get_payment_order_by_checkout_session(
+        self,
+        checkout_session_id: str,
+    ) -> Optional[PaymentOrderResponse]:
+        """Get a payment order by Stripe checkout session ID."""
+        result = (
+            self.client.table("payment_orders")
+            .select("*")
+            .eq("stripe_checkout_session_id", checkout_session_id)
+            .limit(1)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return PaymentOrderResponse(**result.data[0])
+        return None
+
+    async def create_payment_order(self, data: PaymentOrderCreate) -> PaymentOrderResponse:
+        """Create a new payment order row."""
+        result = self.client.table("payment_orders").insert(data.model_dump(mode="json")).execute()
+        return PaymentOrderResponse(**result.data[0])
+
+    async def update_payment_order_by_checkout_session(
+        self,
+        checkout_session_id: str,
+        updates: Dict[str, Any],
+    ) -> Optional[PaymentOrderResponse]:
+        """Update an existing payment order identified by checkout session ID."""
+        result = (
+            self.client.table("payment_orders")
+            .update(updates)
+            .eq("stripe_checkout_session_id", checkout_session_id)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return PaymentOrderResponse(**result.data[0])
+        return None
+
+    # ==================== AI Usage Events ====================
+
+    async def create_ai_usage_event(self, data: AiUsageEventCreate) -> AiUsageEventResponse:
+        """Create an AI usage event record."""
+        result = self.client.table("ai_usage_events").insert(data.model_dump(mode="json")).execute()
+        return AiUsageEventResponse(**result.data[0])
+
+    async def get_ai_usage_event_by_key(self, idempotency_key: str) -> Optional[AiUsageEventResponse]:
+        """Get an AI usage event by idempotency key."""
+        result = (
+            self.client.table("ai_usage_events")
+            .select("*")
+            .eq("idempotency_key", idempotency_key)
+            .limit(1)
+            .execute()
+        )
+        if result.data and len(result.data) > 0:
+            return AiUsageEventResponse(**result.data[0])
+        return None
 
 
 # Global database client instance

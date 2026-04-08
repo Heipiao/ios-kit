@@ -4,6 +4,7 @@ import React, { useEffect, useState } from "react";
 import Link from "next/link";
 import { Plus, Smartphone, Trash2, ExternalLink } from "lucide-react";
 import { getProjects, deleteProject, type Project } from "@/lib/api-projects";
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function ProjectsPage() {
   const [projects, setProjects] = useState<Project[]>([]);
@@ -11,7 +12,23 @@ export default function ProjectsPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    loadProjects();
+    void loadProjects();
+
+    function handleWindowFocus() {
+      void loadProjects();
+    }
+
+    function handlePageShow() {
+      void loadProjects();
+    }
+
+    window.addEventListener("focus", handleWindowFocus);
+    window.addEventListener("pageshow", handlePageShow);
+
+    return () => {
+      window.removeEventListener("focus", handleWindowFocus);
+      window.removeEventListener("pageshow", handlePageShow);
+    };
   }, []);
 
   async function loadProjects() {
@@ -59,15 +76,12 @@ export default function ProjectsPage() {
       <header className="border-b-2 border-black bg-white">
         <div className="max-w-5xl mx-auto px-6 py-4">
           <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
-                <span className="text-xl">📱</span>
-              </div>
-              <div>
-                <h1 className="text-xl font-display font-bold uppercase tracking-wider">iOS Kit</h1>
-                <p className="text-xs font-mono uppercase tracking-widest text-gray-500">Projects</p>
-              </div>
-            </div>
+            <BrandLogo
+              markClassName="w-10 h-10 bg-transparent"
+              titleClassName="text-xl font-display font-bold uppercase tracking-wider"
+              subtitle="Projects"
+              subtitleClassName="text-xs font-mono uppercase tracking-widest text-gray-500"
+            />
             <Link
               href="/projects/new"
               className="flex items-center gap-2 px-4 py-2 border-2 border-black bg-black text-white hover:bg-red-500 transition-colors text-sm font-bold uppercase"
@@ -128,7 +142,9 @@ function ProjectCard({ project, onDelete }: { project: Project; onDelete: () => 
     ipad_109: "iPad 10.9\"",
   };
 
-  const deviceLabel = deviceLabels[project.deviceType] || project.deviceType;
+  const deviceLabel = project.deviceType
+    ? deviceLabels[project.deviceType] || project.deviceType
+    : "Device not set";
 
   return (
     <div className="border-2 border-black bg-white p-4 hover:shadow-lg transition-shadow">
