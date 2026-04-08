@@ -5,6 +5,8 @@ import { NextResponse } from "next/server";
 
 function resolveFramesRoot() {
   const candidates = [
+    path.resolve(process.cwd(), "public/vendor/mockup-device-frames/Exports/iOS"),
+    path.resolve(process.cwd(), "frontend/public/vendor/mockup-device-frames/Exports/iOS"),
     path.resolve(process.cwd(), "vendor/mockup-device-frames/Exports/iOS"),
     path.resolve(process.cwd(), "frontend/vendor/mockup-device-frames/Exports/iOS"),
   ];
