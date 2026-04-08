@@ -1,9 +1,12 @@
 # Python virtual environment
 backend/venv/
+backend/__pycache__/
+backend/*.pyc
 
 # Node modules
 frontend/node_modules/
 frontend/dist/
+frontend/tsconfig.tsbuildinfo
 
 # Environment variables
 .env
