@@ -1,0 +1,10 @@
+.git
+.vercel
+.env
+.env.local
+frontend
+backend/venv
+backend/__pycache__
+backend/*.pyc
+backend/.env
+backend/temp
