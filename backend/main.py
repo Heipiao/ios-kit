@@ -13,6 +13,8 @@ app = FastAPI(title="iOS Kit API")
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
+        "https://apps-launch.com",
+        "https://www.apps-launch.com",
         "http://localhost:3000",
         "http://localhost:3001",
         "http://localhost:3002",
