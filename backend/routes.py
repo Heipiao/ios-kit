@@ -55,6 +55,17 @@ def build_policy_urls(project_id: str) -> tuple[str, str]:
     return (f"/p/{project_id}/privacy", f"/p/{project_id}/terms")
 
 
+def serialize_stripe_value(value):
+    """Convert Stripe SDK objects into plain JSON-safe data."""
+    if hasattr(value, "to_dict_recursive"):
+        return value.to_dict_recursive()
+    if isinstance(value, dict):
+        return {key: serialize_stripe_value(item) for key, item in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [serialize_stripe_value(item) for item in value]
+    return value
+
+
 async def get_project_entitlement_summary(
     db: DatabaseClient,
     project_id: str,
@@ -751,7 +762,7 @@ async def create_checkout_session(
                 currency=session.currency or "usd",
                 mode="payment",
                 status="pending",
-                provider_payload=json.loads(session.to_json()),
+                provider_payload=serialize_stripe_value(session),
             )
         )
 
