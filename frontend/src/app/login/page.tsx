@@ -3,6 +3,7 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export default function Login() {
   const [email, setEmail] = useState('')
@@ -85,8 +86,12 @@ export default function Login() {
         <div className="max-w-md w-full">
           {/* Logo */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-20 h-20 border-2 border-black bg-yellow-400 mb-4" style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 12px, 100% 100%, 0 100%)' }}>
-              <span className="text-4xl">📱</span>
+            <div className="flex justify-center mb-4">
+              <BrandLogo
+                showText={false}
+                markClassName="w-20 h-20 bg-transparent"
+                imageClassName="object-contain p-0"
+              />
             </div>
             <h1 className="text-4xl font-display font-bold text-black uppercase tracking-wider">iOS Kit</h1>
             <p className="text-sm font-medium text-gray-600 mt-2 uppercase tracking-widest">AI-Powered App Store Studio</p>

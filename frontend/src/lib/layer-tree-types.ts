@@ -1,6 +1,6 @@
 // AiLayerTreeConfig 类型定义
 
-export type LayerType = "background" | "image" | "text" | "sticker";
+export type LayerType = "background" | "device" | "image" | "text" | "sticker";
 
 export interface BaseLayer {
   id: string;
@@ -41,6 +41,18 @@ export interface ImageLayer extends BaseLayer {
   };
 }
 
+export type DeviceRenderMode = "screenshot-only" | "frame-asset";
+
+export interface DeviceLayer extends BaseLayer {
+  type: "device";
+  assetRef?: string;
+  renderMode: DeviceRenderMode;
+  frameAssetId?: string;
+  borderColor: string;
+  cornerRadius?: number;
+  borderWidth?: number;
+}
+
 export interface TextLayer extends BaseLayer {
   type: "text";
   content: string;
@@ -65,7 +77,7 @@ export interface StickerLayer extends BaseLayer {
   assetRef?: string;
 }
 
-export type Layer = BackgroundLayer | ImageLayer | TextLayer | StickerLayer;
+export type Layer = BackgroundLayer | DeviceLayer | ImageLayer | TextLayer | StickerLayer;
 
 export interface SlideConfig {
   slideId: string;
@@ -82,13 +94,17 @@ export interface AiLayerTreeConfig {
   slides: SlideConfig[];
 }
 
-// Frame 资源配置
-export interface FrameConfig {
+export interface DeviceFrameAssetConfig {
   id: string;
+  modelId: string;
+  modelName: string;
+  colorId: string;
+  colorName: string;
   name: string;
-  pngUrl: string;
+  assetUrl: string;
+  kind: "png";
   screenRect: { x: number; y: number; w: number; h: number };
-  deviceSize: { w: number; h: number };
+  outerSize: { w: number; h: number };
 }
 
 // 贴纸配置

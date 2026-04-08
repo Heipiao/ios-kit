@@ -1,16 +1,11 @@
 // Mock 数据和配置
 
-import { AiLayerTreeConfig, FrameConfig, StickerConfig, Layer } from "./layer-tree-types";
+import { DEFAULT_DEVICE_FRAME_ASSET_ID, getDeviceFrameAsset } from "./device-frame-assets";
+import { AiLayerTreeConfig, DeviceFrameAssetConfig, StickerConfig, Layer } from "./layer-tree-types";
 
 // Frame 资源配置（Mock）
-export const FRAME_REGISTRY: Record<string, FrameConfig> = {
-  "iphone-17-pro-silver": {
-    id: "iphone-17-pro-silver",
-    name: "iPhone 17 Pro Silver",
-    pngUrl: "/asset/iPhone 17 Pro Silver.png",
-    screenRect: { x: 14, y: 14, w: 412, h: 878 },
-    deviceSize: { w: 440, h: 916 }
-  }
+export const FRAME_REGISTRY: Record<string, DeviceFrameAssetConfig> = {
+  [DEFAULT_DEVICE_FRAME_ASSET_ID]: getDeviceFrameAsset(DEFAULT_DEVICE_FRAME_ASSET_ID)!,
 };
 
 // 贴纸配置（Mock）
@@ -41,7 +36,7 @@ export const MOCK_LAYER_TREE_CONFIG: AiLayerTreeConfig = {
   version: "1.0",
   exportedPngSize: { w: 1206, h: 2622 },
   device: {
-    frameRef: "iphone-17-pro-silver"
+    frameRef: DEFAULT_DEVICE_FRAME_ASSET_ID
   },
   slides: [
     {
@@ -72,21 +67,35 @@ export const MOCK_LAYER_TREE_CONFIG: AiLayerTreeConfig = {
           type: "image",
           visible: true,
           zIndex: 1,
-          x: 397,
-          y: 370,
-          width: 412,
-          height: 878,
-          assetRef: "mock-upload-001",
+          x: -84,
+          y: 196,
+          width: 332,
+          height: 332,
+          assetRef: "",
           fit: "cover",
-          cornerRadius: 47,
-          showDeviceFrame: true,
-          frameRef: "iphone-17-pro-silver"
+          cornerRadius: 24
+        },
+        {
+          id: "device-1",
+          type: "device",
+          visible: true,
+          zIndex: 2,
+          x: 382,
+          y: 355,
+          width: 442,
+          height: 908,
+          renderMode: "frame-asset",
+          frameAssetId: DEFAULT_DEVICE_FRAME_ASSET_ID,
+          assetRef: "mock-upload-001",
+          borderColor: "#111111",
+          cornerRadius: 60,
+          borderWidth: 12
         },
         {
           id: "text-1",
           type: "text",
           visible: true,
-          zIndex: 2,
+          zIndex: 3,
           x: 100,
           y: 2350,
           width: 1006,
@@ -134,31 +143,45 @@ export const MOCK_LAYER_TREE_CONFIG: AiLayerTreeConfig = {
           type: "image",
           visible: true,
           zIndex: 1,
-          x: 397,
-          y: 370,
-          width: 412,
-          height: 878,
-          assetRef: "mock-upload-002",
+          x: 980,
+          y: 148,
+          width: 300,
+          height: 300,
+          assetRef: "",
           fit: "cover",
-          cornerRadius: 47,
-          showDeviceFrame: true,
-          frameRef: "iphone-17-pro-silver"
+          cornerRadius: 24
+        },
+        {
+          id: "device-2",
+          type: "device",
+          visible: true,
+          zIndex: 2,
+          x: 306,
+          y: 402,
+          width: 442,
+          height: 908,
+          renderMode: "frame-asset",
+          frameAssetId: DEFAULT_DEVICE_FRAME_ASSET_ID,
+          assetRef: "mock-upload-002",
+          borderColor: "#8f96ff",
+          cornerRadius: 60,
+          borderWidth: 12
         },
         {
           id: "text-2",
           type: "text",
           visible: true,
-          zIndex: 2,
+          zIndex: 3,
           x: 100,
-          y: 2350,
-          width: 1006,
+          y: 2330,
+          width: 860,
           height: 120,
           content: "即时通讯，畅聊无阻",
           fontFamily: "SF Pro Display",
           fontSize: 48,
           fontWeight: "600",
           color: "#ffffff",
-          align: "center"
+          align: "left"
         }
       ]
     }
@@ -204,6 +227,19 @@ export function createDefaultLayer(type: Layer["type"], index: number): Layer {
         assetRef: "",
         fit: "cover",
         cornerRadius: 0
+      };
+    case "device":
+      return {
+        ...baseLayer,
+        type: "device",
+        width: 442,
+        height: 908,
+        assetRef: "",
+        renderMode: "frame-asset",
+        frameAssetId: DEFAULT_DEVICE_FRAME_ASSET_ID,
+        borderColor: "#111111",
+        cornerRadius: 60,
+        borderWidth: 12
       };
     case "text":
       return {

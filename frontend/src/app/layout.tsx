@@ -11,6 +11,11 @@ export const metadata: Metadata = {
   keywords: ['iOS', 'App Store', 'screenshot generator', 'AI', 'metadata', 'ASO', 'app marketing'],
   authors: [{ name: 'iOS Kit' }],
   creator: 'iOS Kit',
+  icons: {
+    icon: '/favicon.png',
+    apple: '/apple-touch-icon.png',
+    shortcut: '/favicon.png',
+  },
   openGraph: {
     type: 'website',
     locale: 'en_US',
@@ -22,7 +27,7 @@ export const metadata: Metadata = {
       {
         url: '/og-image.png',
         width: 1200,
-        height: 630,
+        height: 1200,
         alt: 'iOS Kit - AI Studio',
       },
     ],
@@ -31,6 +36,7 @@ export const metadata: Metadata = {
     card: 'summary_large_image',
     title: 'iOS Kit - AI-Powered App Store Screenshot Generator',
     description: 'Generate professional iOS App Store screenshots in seconds using AI.',
+    images: ['/og-image.png'],
   },
   robots: {
     index: true,
@@ -57,7 +63,7 @@ export default function RootLayout({
   return (
     <html lang="en">
       <head>
-        <link rel="icon" href="/favicon.ico" sizes="any" />
+        <link rel="icon" href="/favicon.png" sizes="32x32" type="image/png" />
         <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
         {/* Google Fonts - Free fonts for commercial use (SIL Open Font License) */}
         <link rel="preconnect" href="https://fonts.googleapis.com" />

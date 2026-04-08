@@ -1,5 +1,6 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export const metadata: Metadata = {
   title: 'Terms of Service - iOS Kit',
@@ -16,12 +17,11 @@ export default function Terms() {
       {/* Header */}
       <header className="border-b-2 border-black bg-white">
         <div className="max-w-4xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
-              <span className="text-lg">📱</span>
-            </div>
-            <span className="font-display font-bold uppercase tracking-wider">iOS Kit</span>
-          </div>
+          <BrandLogo
+            markClassName="w-10 h-10 bg-transparent"
+            titleClassName="font-display font-bold uppercase tracking-wider"
+            subtitle=""
+          />
           <Link href="/" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">
             ← Back Home
           </Link>

@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { Home, Image, FileText, Settings, Plus } from 'lucide-react'
+import { BrandLogo } from './BrandLogo'
 
 interface SidebarProps {
   onCreateProject?: () => void
@@ -17,15 +18,11 @@ export function Sidebar({ onCreateProject }: SidebarProps) {
     <div className="w-64 border-r-2 border-black bg-white flex flex-col h-full">
       {/* Logo */}
       <div className="p-4 border-b-2 border-black bg-yellow-400">
-        <div className="flex items-center gap-2">
-          <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
-            <span className="text-xl">📱</span>
-          </div>
-          <div>
-            <h1 className="text-lg font-display font-bold uppercase tracking-wider leading-none">iOS Kit</h1>
-            <p className="text-xs font-mono uppercase tracking-widest leading-none mt-1">AI Studio</p>
-          </div>
-        </div>
+        <BrandLogo
+          markClassName="w-10 h-10 bg-transparent"
+          titleClassName="text-lg font-display font-bold uppercase tracking-wider leading-none"
+          subtitleClassName="text-xs font-mono uppercase tracking-widest leading-none mt-1"
+        />
       </div>
 
       {/* Navigation */}

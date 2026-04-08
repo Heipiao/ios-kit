@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { Zap, Layers, Sparkles, Globe, Mail } from 'lucide-react'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export const metadata: Metadata = {
   title: 'About - iOS Kit',
@@ -17,12 +18,11 @@ export default function About() {
       {/* Header */}
       <header className="border-b-2 border-black bg-white">
         <div className="max-w-6xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
-              <span className="text-lg">📱</span>
-            </div>
-            <span className="font-display font-bold uppercase tracking-wider">iOS Kit</span>
-          </div>
+          <BrandLogo
+            markClassName="w-10 h-10 bg-transparent"
+            titleClassName="font-display font-bold uppercase tracking-wider"
+            subtitle=""
+          />
           <Link href="/" className="btn-brutal text-sm px-5 py-2">
             Back Home
           </Link>

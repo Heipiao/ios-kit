@@ -1,6 +1,7 @@
 import { Metadata } from 'next'
 import Link from 'next/link'
 import { Zap, Layers, Sparkles } from 'lucide-react'
+import { BrandLogo } from '@/components/BrandLogo'
 
 export const metadata: Metadata = {
   title: 'AI-Powered App Store Screenshot Generator',
@@ -9,7 +10,14 @@ export const metadata: Metadata = {
   openGraph: {
     title: 'iOS Kit - Generate App Store Assets in Seconds',
     description: 'AI-powered studio for creating professional iOS App Store screenshots.',
-    images: ['/og-image.png'],
+    images: [
+      {
+        url: '/og-image.png',
+        width: 1200,
+        height: 1200,
+        alt: 'iOS Kit - AI Studio',
+      },
+    ],
   },
 }
 
@@ -59,15 +67,10 @@ export default function LandingPage() {
       <div className="relative z-10">
         {/* Navigation */}
         <header className="flex items-center justify-between px-6 py-4 md:px-12 md:py-6">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 border-2 border-black bg-black flex items-center justify-center" style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 8px, 100% 100%, 0 100%)' }}>
-              <span className="text-xl">📱</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold uppercase tracking-wider leading-none">iOS Kit</h1>
-              <p className="text-xs font-mono uppercase tracking-widest leading-none mt-0.5">AI Studio</p>
-            </div>
-          </div>
+          <BrandLogo
+            markClassName="w-14 h-14 bg-transparent"
+            imageClassName="object-contain p-0"
+          />
           <nav className="hidden md:flex items-center gap-6">
             <Link href="/about" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Features</Link>
             <Link href="/about" className="text-sm font-bold uppercase tracking-wider hover:text-red-600 transition-colors">Pricing</Link>
@@ -174,14 +177,6 @@ export default function LandingPage() {
         </footer>
       </div>
 
-      {/* Decorative markers */}
-      <div className="absolute top-6 right-6 z-20 w-8 h-8 border-2 border-black flex items-center justify-center bg-white">
-        <div className="w-full h-0.5 bg-black absolute" />
-        <div className="h-full w-0.5 bg-black absolute" />
-      </div>
-      <div className="absolute bottom-6 left-6 z-20 w-6 h-6 border-2 border-black bg-yellow-400 flex items-center justify-center">
-        <span className="text-xs font-bold">⚡</span>
-      </div>
     </div>
   )
 }

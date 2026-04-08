@@ -3,27 +3,18 @@
 import React, { useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { Upload, X, Smartphone, ArrowLeft, ImagePlus } from "lucide-react";
+import { Upload, X, Smartphone, ArrowLeft, ImagePlus, ShieldCheck, Save } from "lucide-react";
 import { createProject, uploadAsset, type Asset } from "@/lib/api-projects";
-
-const DEVICE_PRESETS = [
-  { value: "iphone_67", label: "iPhone 6.7\"", desc: "1290 x 2796" },
-  { value: "iphone_65", label: "iPhone 6.5\"", desc: "1284 x 2778" },
-  { value: "iphone_55", label: "iPhone 5.5\"", desc: "1242 x 2208" },
-  { value: "ipad_129", label: "iPad 12.9\"", desc: "2048 x 2732" },
-  { value: "ipad_11", label: "iPad 11\"", desc: "1668 x 2388" },
-  { value: "ipad_109", label: "iPad 10.9\"", desc: "1640 x 2360" },
-];
+import { BrandLogo } from "@/components/BrandLogo";
 
 export default function NewProjectPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(false);
+  const [loadingAction, setLoadingAction] = useState<"screenshots" | "save" | "privacy" | null>(null);
   const [error, setError] = useState<string | null>(null);
 
   // Form state
   const [appName, setAppName] = useState("");
   const [description, setDescription] = useState("");
-  const [deviceType, setDeviceType] = useState("iphone_67");
   const [screenshots, setScreenshots] = useState<Asset[]>([]);
   const [logo, setLogo] = useState<Asset | null>(null);
 
@@ -33,7 +24,7 @@ export default function NewProjectPage() {
       const result = await uploadAsset(file, "screenshot");
       setScreenshots((prev) => [...prev, result.asset]);
     } catch (err) {
-      setError("Failed to upload screenshot");
+      setError(err instanceof Error ? err.message : "Failed to upload screenshot");
       console.error(err);
     }
   };
@@ -43,7 +34,7 @@ export default function NewProjectPage() {
       const result = await uploadAsset(file, "logo");
       setLogo(result.asset);
     } catch (err) {
-      setError("Failed to upload logo");
+      setError(err instanceof Error ? err.message : "Failed to upload logo");
       console.error(err);
     }
   };
@@ -56,38 +47,43 @@ export default function NewProjectPage() {
     setLogo(null);
   };
 
-  // Submit handler
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-
+  const createAndRoute = async (mode: "screenshots" | "save" | "privacy") => {
     if (!appName.trim()) {
       setError("App name is required");
       return;
     }
 
-    if (screenshots.length === 0) {
-      setError("Please upload at least one screenshot");
+    if (mode === "screenshots" && screenshots.length === 0) {
+      setError("Please upload at least one screenshot before creating screenshots");
       return;
     }
 
     try {
-      setLoading(true);
+      setLoadingAction(mode);
       setError(null);
 
       const result = await createProject({
         name: appName.trim(),
         description: description.trim(),
-        deviceType,
         screenshotIds: screenshots.map((s) => s.id),
         logoId: logo?.id,
       });
 
-      // Navigate to project page
+      if (mode === "screenshots") {
+        router.push(`/projects/${result.project.id}/screenshots`);
+        return;
+      }
+
+      if (mode === "privacy") {
+        router.push(`/projects/${result.project.id}/privacy`);
+        return;
+      }
+
       router.push(`/projects/${result.project.id}`);
     } catch (err) {
       setError("Failed to create project");
       console.error(err);
-      setLoading(false);
+      setLoadingAction(null);
     }
   };
 
@@ -103,17 +99,13 @@ export default function NewProjectPage() {
             <ArrowLeft className="w-4 h-4" />
             Back to Projects
           </Link>
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 border-2 border-black bg-black flex items-center justify-center">
-              <span className="text-xl">📱</span>
-            </div>
-            <div>
-              <h1 className="text-xl font-display font-bold uppercase tracking-wider">Create New Project</h1>
-              <p className="text-xs font-mono uppercase tracking-widest text-gray-500">
-                Enter app details and upload screenshots
-              </p>
-            </div>
-          </div>
+          <BrandLogo
+            markClassName="w-10 h-10 bg-transparent"
+            title="Create New Project"
+            subtitle="Enter app details and upload screenshots"
+            titleClassName="text-xl font-display font-bold uppercase tracking-wider"
+            subtitleClassName="text-xs font-mono uppercase tracking-widest text-gray-500"
+          />
         </div>
       </header>
 
@@ -125,7 +117,13 @@ export default function NewProjectPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-8">
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            createAndRoute("save");
+          }}
+          className="space-y-8"
+        >
           {/* Basic Info */}
           <section className="bg-white border-2 border-black p-6">
             <h2 className="font-display font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
@@ -160,33 +158,9 @@ export default function NewProjectPage() {
                   placeholder="Describe your app's core value"
                 />
               </label>
-
-              <label className="block">
-                <span className="text-xs font-mono uppercase tracking-wider text-gray-500 block mb-2">
-                  Target Device *
-                </span>
-                <div className="grid grid-cols-2 gap-2">
-                  {DEVICE_PRESETS.map((preset) => (
-                    <button
-                      key={preset.value}
-                      type="button"
-                      onClick={() => setDeviceType(preset.value)}
-                      className={`p-3 border-2 text-left transition-colors ${
-                        deviceType === preset.value
-                          ? "border-black bg-black text-white"
-                          : "border-black bg-gray-50 hover:bg-yellow-50"
-                      }`}
-                    >
-                      <div className="font-bold text-sm uppercase">{preset.label}</div>
-                      <div className={`text-xs font-mono ${
-                        deviceType === preset.value ? "text-gray-300" : "text-gray-500"
-                      }`}>
-                        {preset.desc}
-                      </div>
-                    </button>
-                  ))}
-                </div>
-              </label>
+              <p className="text-xs font-mono uppercase tracking-wider text-gray-500">
+                Device size will be selected later in the screenshot editor.
+              </p>
             </div>
           </section>
 
@@ -194,7 +168,7 @@ export default function NewProjectPage() {
           <section className="bg-white border-2 border-black p-6">
             <h2 className="font-display font-bold uppercase tracking-wider mb-4 flex items-center gap-2">
               <ImagePlus className="w-5 h-5" />
-              Screenshots *
+              Screenshots
             </h2>
 
             <div className="space-y-4">
@@ -213,7 +187,7 @@ export default function NewProjectPage() {
                 />
                 <Upload className="w-8 h-8 mx-auto mb-2" />
                 <p className="text-sm font-display uppercase">Click to upload screenshots</p>
-                <p className="text-xs font-mono text-gray-500 mt-1">PNG or JPG, at least one required</p>
+                <p className="text-xs font-mono text-gray-500 mt-1">PNG or JPG. Required only for the screenshot flow.</p>
               </label>
 
               {/* Uploaded Screenshots */}
@@ -292,21 +266,62 @@ export default function NewProjectPage() {
           </section>
 
           {/* Submit */}
-          <div className="flex items-center gap-4">
+          <div className="grid gap-3 md:grid-cols-3">
             <button
-              type="submit"
-              disabled={loading}
-              className={`flex-1 py-4 border-2 font-display font-bold uppercase tracking-wider transition-colors ${
-                loading
+              type="button"
+              onClick={() => createAndRoute("screenshots")}
+              disabled={loadingAction !== null}
+              className={`py-4 border-2 font-display font-bold uppercase tracking-wider transition-colors ${
+                loadingAction !== null
                   ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
                   : "border-black bg-black text-white hover:bg-red-500"
               }`}
             >
-              {loading ? "Creating..." : "Create Project"}
+              <span className="flex items-center justify-center gap-2">
+                <ImagePlus className="w-4 h-4" />
+                {loadingAction === "screenshots" ? "Creating..." : "Create Screenshots"}
+              </span>
             </button>
+
+            <button
+              type="submit"
+              disabled={loadingAction !== null}
+              className={`py-4 border-2 font-display font-bold uppercase tracking-wider transition-colors ${
+                loadingAction !== null
+                  ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "border-black bg-white hover:bg-gray-100"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <Save className="w-4 h-4" />
+                {loadingAction === "save" ? "Saving..." : "Save Only"}
+              </span>
+            </button>
+
+            <button
+              type="button"
+              onClick={() => createAndRoute("privacy")}
+              disabled={loadingAction !== null}
+              className={`py-4 border-2 font-display font-bold uppercase tracking-wider transition-colors ${
+                loadingAction !== null
+                  ? "border-gray-300 bg-gray-100 text-gray-400 cursor-not-allowed"
+                  : "border-black bg-yellow-400 hover:bg-yellow-500"
+              }`}
+            >
+              <span className="flex items-center justify-center gap-2">
+                <ShieldCheck className="w-4 h-4" />
+                {loadingAction === "privacy" ? "Creating..." : "Create Policy Site"}
+              </span>
+            </button>
+          </div>
+
+          <div className="flex items-center justify-between">
+            <p className="text-xs font-mono uppercase tracking-wider text-gray-500">
+              You can also upload screenshots and logo later from the project page.
+            </p>
             <Link
               href="/projects"
-              className="px-6 py-4 border-2 border-black bg-white hover:bg-gray-100 transition-colors font-display font-bold uppercase tracking-wider"
+              className="px-6 py-3 border-2 border-black bg-white hover:bg-gray-100 transition-colors font-display font-bold uppercase tracking-wider"
             >
               Cancel
             </Link>
